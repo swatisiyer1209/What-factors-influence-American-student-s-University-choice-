@@ -1,0 +1,563 @@
+---
+title: "What factors influence American student's University choice ?"
+output:
+  pdf_document: 
+    fig_crop: no
+date: "02-04-2023"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## IPEDS Data
+
+The Integrated Postsecondary Education Data System (IPEDS) is the primary source of information on U.S colleges, universities and technical and vocational institutions. This exploratory data analysis (EDA) project analyses the 2013 IPEDS data set. The data set consists data from **1533** Universities, covering information on number applicants, admissions, enrollment, ethnicity, university's religious affiliation, tuition fess, living costs etc. The aim of this EDA project is to identify: **What factors influence American student's University choice ?**
+
+
+```{r reading data,include=FALSE}
+## Reading the Data
+library(dplyr)
+ipeds <- read.csv("IPEDS_data.csv")
+```
+
+
+
+## Overview of 2013 University Applications, Admissions and Enrollment trends
+
+```{r Overview of 2013 University Applications, Admissions and Enrollment trends, results = "hold"}
+
+Applications<-na.omit(ipeds$Applicants.total) 
+cat("Applicants Summary:",sep="\n")
+summary(Applications)
+
+Admissions <- na.omit(ipeds$Admissions.total)
+cat("Admissions Summary:",sep="\n") 
+summary(Admissions)
+
+Enrollments <- na.omit(ipeds$Enrolled.total)
+cat("Enrollments Summary:",sep="\n")
+summary(Enrollments)
+
+```
+Starting off with an overview of the 2013 University trends with respect to applications, admissions offered and enrollments. This is done to get a gist of how many American students apply to universities, how many are offered an admission and how many accept these offers. On average, in 2013, American universities received about 6400 applications, of which around 3560 were offered an admission and under 1050 enrolled in universities they received an offer from. 
+
+The minimum and maximum values show the different scenarios covered in the data set, with one university receiving just under 72700 applications whereas the other receiving just 4.
+
+
+### Histogram view of Applicants, Admissions and Enrollment trends
+```{r Histogram}
+library(ggplot2)
+
+p1<- ggplot(aes(x=Applicants.total), data=subset(ipeds,!is.na(Applicants.total)))+geom_histogram(color="black",fill="purple") + ggtitle(" Applications")+xlab("Applications Submitted")
+
+p2<- ggplot(aes(x=Admissions.total), data=subset(ipeds,!is.na(Admissions.total)))+geom_histogram(color="black",fill="purple")+ggtitle("Admissions ")+xlab("Admissions Offered")
+
+p3<- ggplot(aes(x=Enrolled.total), data=subset(ipeds, !is.na(Enrolled.total)))+geom_histogram(color="black",fill="purple")+ggtitle("Enrollment")+xlab("Enrolled")
+
+
+suppressPackageStartupMessages(library(gridExtra))
+suppressMessages(grid.arrange(p1,p2,p3,ncol=3))
+
+```
+
+
+## Does Acceptance rate influence Student's choice of applying to a university ?
+
+
+```{r Application vs admissions 1, warning = FALSE,, out.width = '100%'}
+library(dplyr)
+
+highest_application <- subset(ipeds$Name, ipeds$Applicants.total>70000) 
+cat("Highest Number of Applications were received by: ", highest_application)
+
+library(ggplot2)
+p1<-ggplot(aes(x=Applicants.total,y=Admissions.total),data=subset(ipeds, !is.na(Applicants.total),!is.na(Admissions.total)))+geom_point(alpha=0.5,color="purple")+scale_x_continuous(breaks=seq(0,72676,5000))+ scale_y_continuous(breaks=seq(0,40000,5000))+ggtitle("Number of Admissions offered vs Number of Applicants")+theme(plot.title = element_text(hjust = 0.5))+ xlab("Number of Applicants")+ylab("Number of Admissions Offered")
+
+
+ipeds$acceptance_rate<-ipeds$Admissions.total/ipeds$Applicants.total
+
+p2<-ggplot(aes(x=Applicants.total,y=acceptance_rate),data=subset(ipeds, !is.na(Applicants.total),!is.na(acceptance_rate)))+geom_point(alpha=0.5,color="purple")+scale_x_continuous(breaks=seq(0,72676,10000)) + ggtitle("Acceptance rate vs Number of Applicants")+theme(plot.title = element_text(hjust = 0.5))+ xlab("Number of Applications")+ ylab("Acceptance Rate (%)")
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=1)
+
+```
+What is interesting to see from the plot below is that students apply to universities despite relatively low admissions offered. University of California received the highest number of applications in 2013-14. 
+
+Acceptance rate is the ratio of admissions offered to the total number of applications. What can be seen in the plot is that **acceptance rate doesn't play a major role in a students decision to apply to a university**,as University of California received the highest number of applications despite having an acceptance rate just under 25%. 
+
+### What makes University of California- Los Angeles so popular among American Students?
+
+University of California- Los Angeles received the highest number of applications in 2013-14 - 72676. As seen above acceptance rate doesn't play a major factor in a students decision to apply to a particular university. To understand why University of California received the highest number of applications, University of California- Los Angeles data is filtered from the data set and looked at in detail. 
+
+```{r Uni of California}
+
+ipeds.Uni_cal <- filter(ipeds,ipeds$Name=="University of California-Los Angeles")
+
+
+
+# create matrix with 4 columns and 4 rows
+Uni_Cal_data= matrix(c(ipeds.Uni_cal$Name, ipeds.Uni_cal$Highest.degree.offered, ipeds.Uni_cal$Religious.affiliation,ipeds.Uni_cal$Tuition.and.fees..2013.14, ipeds.Uni_cal$Degree.of.urbanization..Urban.centric.locale.,ipeds.Uni_cal$Percent.of.freshmen.receiving.any.financial.aid,ipeds.Uni_cal$Total.price.for.in.state.students.living.on.campus.2013.14,ipeds.Uni_cal$Total.price.for.out.of.state.students.living.on.campus.2013.14), ncol=1, nrow=8)
+ 
+# specify the column names and row names of matrix
+rownames(Uni_Cal_data) = c('Name','Highest degree offered','Religious affiliation','Tuition and fees 2013-14','Degree of urbanization Urban centric locale','Percent of freshmen receiving any financial aid','Total price for in state students living on campus 2013-14','Total price for out of state students living on campus 2013-14')
+ 
+# assign to table
+Uni_cal_final=as.table(Uni_Cal_data)
+ 
+# display
+Uni_cal_final
+
+
+```
+
+Comparing any potential incentives such as, Tuition, on campus living costs for in state and out state students, which may make University of California- Los Angeles popular. The purple dot in the plots below represent University of California- Los Angeles.
+
+```{r Tuition, In state and Out State costs  for Uni_cal,warning = FALSE,, results = "hold"}
+suppressPackageStartupMessages(library(ggplot2))
+
+#Tuition 
+par(mfrow = c(2,2))
+p1<-ggplot(aes(x=Applicants.total,y=Tuition.and.fees..2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=ipeds.Uni_cal,     aes(x=ipeds.Uni_cal$Applicants.total,y=ipeds.Uni_cal$Tuition.and.fees..2013.14), 
+             color='purple',
+             size=3)+scale_x_continuous(breaks=seq(0,70000,20000))+ ylab("Tuition fees 2013-14")+xlab("Total Applications")
+
+#in state
+p2<- ggplot(aes(x=Applicants.total,y=Total.price.for.in.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=ipeds.Uni_cal, 
+             aes(x=ipeds.Uni_cal$Applicants.total,y=ipeds.Uni_cal$Total.price.for.in.state.students.living.on.campus.2013.14), 
+             color='purple',
+             size=3)+scale_x_continuous(breaks=seq(0,70000,20000))+ ylab("Living Cost - in state students")+xlab("Total Applications")
+
+#Out of State
+p3<- ggplot(aes(x=Applicants.total,y=Total.price.for.out.of.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=ipeds.Uni_cal, 
+             aes(x=ipeds.Uni_cal$Applicants.total,y=ipeds.Uni_cal$Total.price.for.out.of.state.students.living.on.campus.2013.14), 
+             color='purple',
+             size=3)+scale_x_continuous(breaks=seq(0,70000,20000))+ ylab("Living Cost - out of state students ")+xlab("Total Applications")
+
+#library(gridExtra)
+#grid.arrange(p1,p2,p3,p4,ncol=2)
+
+install.packages("patchwork", , repos = "http://cran.us.r-project.org")                 # Install & load patchwork package
+library("patchwork")
+ggp_all <- (p1) / (p2+p3 ) +    # Create grid of plots with title
+  plot_annotation(title = "University of California - Los Angeles compared to other universities") & 
+  theme(plot.title = element_text(hjust = 0.5))
+ggp_all                     
+```
+
+\
+The reasons for this high number of applications could be the significantly lower Tuition fees and lower campus living cost for in state students. The on campus living cost for out state students however is on the higher end. Due to lack of data on the distribution of in state and out state applications, whether the relatively lower on campus cost for in state students is a reason for higher number of applications cannot be said with certainty. However, **the relatively lower tuition cost makes University of California- Los Angeles an attractive University choice.** 
+
+### Enrollment vs Admissions Offered
+
+Typically students apply to more than one university, with several university being the back up choice. This is why it is necessary to look into the comparison of admissions offered to the number of students who actually enrolled. 
+
+Enrollment rate is the ratio of the number of students who enrolled compared to the number of students who were offered an admission. 
+
+```{r Admissions vs Enrollment 1}
+
+p1<-ggplot(aes(x=Admissions.total,y=Enrolled.total),data=subset(ipeds, !is.na(Admissions.total), !is.na(Enrolled.total)))+geom_point(alpha=0.5,color="purple")+scale_x_continuous(breaks=seq(0,35000,5000))+scale_y_continuous(breaks=seq(0,11000,2000))+ ggtitle(" Number of Enrollments vs Number of Admissions offereds")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Number of Enrollments")+xlab("Number of Admissions Offered")
+
+ipeds$enrollment_rate <- ipeds$Enrolled.total/ipeds$Admissions.total
+
+p2<-ggplot(aes(x=Admissions.total,y=enrollment_rate),data=subset(ipeds, !is.na(Admissions.total), !is.na(enrollment_rate)))+geom_point(alpha=0.5,color="purple")+scale_x_continuous(breaks=seq(0,35815,5000))+ ggtitle(" Enrollment Rate vs Number of Admissions offered")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Number of Admissions Offered")
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=1)
+```
+
+**What can be seen is that despite having the highest number of admissions offered, the enrollment rate is rather low.** The enrollment rate plot shows that typically enrollment is highest in universities where the number of admissions offered are low. Therefore plotting enrollment rate against acceptance rate can help analyse this trend.
+
+```{r Enrollment rate vs acceptance rate, warning=FALSE}
+
+ggplot(aes(x=acceptance_rate,y=enrollment_rate),data=subset(ipeds, !is.na(acceptance_rate), !is.na(enrollment_rate)))+geom_point(color="purple",alpha=1/2)+ ggtitle(" Enrollment Rate vs Acceptance Rate")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Acceptance Rate")
+
+```
+
+**The plot seems to confirm the trend, typically the higher the acceptance rate the lower seems the enrollment rate, implying that a higher acceptance rate doesn't influence a student's decision to apply .** This may have to do with the fact that most prestigious universities have a relatively low acceptance rate and therefore there is a high chance of a student enrolling at these universities if accepted. This is why the enrollment rate for lower acceptance rate is significantly higher. The relatively lower enrollment rate for higher acceptance rate could be due to students applying to multiple universities. A small fraction of high enrollment rate for high acceptance rate could be for typically diverse universities- such as Historically black or Hispanic universities. 
+
+
+
+## Enrollment Rate vs Tuition Fees vs Acceptance Rate
+
+```{r Tuition fee vs enrollment rate}
+# suppress the warnings by setting warn=-1
+options(warn=-1)
+library(ggplot2)
+p1<-ggplot(aes(x=Tuition.and.fees..2013.14, y=enrollment_rate),data=ipeds)+geom_point(color="purple",alpha=1/2)+xlab("Tuition Fees 2013-14")+ylab("Enrollment Rate")+ ggtitle(" Enrollment Rate vs Tuition Fees")+theme(plot.title = element_text(hjust = 0.5))
+
+p2<-ggplot(aes(x=Tuition.and.fees..2013.14, y=acceptance_rate),data=ipeds)+geom_point(color="purple",alpha=1/2)+xlab("Tuition Fees 2013-14")+ylab("Acceptance Rate")+ ggtitle(" Acceptance Rate vs Tuition Fees")+theme(plot.title = element_text(hjust = 0.5))
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=1)
+
+```
+
+A plot of the enrollment rate and tuition fees shows, a slight dip in enrollment rate as tuition fees increases. This hints that **students prefer and enroll  into universities that have a lower tuition fees**. **Beyond the 40000 mark there is an increase in enrollment rate this may be due to the fact that many prestigious universities, which are typically more expensive, have a high enrollment rate despite their low acceptance rate, which is seen in the second plot**. Furthermore, the acceptance rate plot is an almost reversed version of the enrollment rate plot, which confirms that a high acceptance rate does not necessarily imply high enrollment rate. 
+
+
+## Public or Private Control of Institution
+
+Control of Institution mainly depends on who funds the university itself. Public Universities are mainly funded by state governments. Private universities on the other hand rely on student tuition fees, endowments etc to fund their program. Therefore, overall trends for public and private universities are plotted.
+
+```{r Application vs admissions for public vs private}
+
+library(dplyr)
+
+#Grouping by Control
+ipeds.Data_by_Control  <- ipeds %>%
+filter(!is.na(Applicants.total)) %>%
+group_by(Control.of.institution) %>%
+summarise(n=n(),mean_Acceptance_rate=mean(Admissions.total/Applicants.total)*100,
+          mean_Enrollment_rate=mean(Enrolled.total/Admissions.total)*100,
+          total_Apps=sum(Applicants.total),mean_Apps=mean(Applicants.total), median_friend_Apps=median(Applicants.total),
+          total_Adm=sum(Admissions.total),mean_Adm=mean(Admissions.total),median_friend_Adm=median(Admissions.total),
+          total_Enr=sum(Enrolled.total),mean_Enr=mean(Enrolled.total),median_friend_Enr=median(Enrolled.total)
+)
+
+
+ipeds.Data_by_Control
+colours<- c("red3","blue4")
+library(ggplot2)
+
+par(mfrow = c(1,4))
+p1<-barplot(ipeds.Data_by_Control$total_Apps,names.arg=ipeds.Data_by_Control$Control.of.institution,xlab="Control of Institution",ylab="Number of Applications",col=colours)
+
+p2<-barplot(ipeds.Data_by_Control$total_Adm,names.arg=ipeds.Data_by_Control$Control.of.institution,xlab="Control of Institution",ylab="Number of Admissions",col=colours)
+
+p3<-barplot(ipeds.Data_by_Control$total_Enr,names.arg=ipeds.Data_by_Control$Control.of.institution,xlab="Control of Institution",ylab="Number of Enrollments",col=colours)
+
+p4<-barplot(ipeds.Data_by_Control$mean_Enrollment_rate,names.arg=ipeds.Data_by_Control$Control.of.institution,xlab="Control of Institution",ylab="Mean Enrollment Rate",col=colours)
+
+mtext("Application, Admission, Enrollment trends for public and private university", side = 3, line = - 2, outer = TRUE)
+
+```
+
+**It can be seen that the number of applications, admissions and enrollments are higher in public universities than in private.** Exploring why this is the case in the next section.
+
+### Why are public universities more preferred by students compared to private univerities?
+To analyse why public universities are more preferred by students over private universities, the tuition fees, On campus living costs and % receiving financial aid is compared.
+
+```{r why are public universities more preffered cost comparison}
+
+
+par(mfrow = c(1,3))
+
+#Grouping by Control_Tuition
+ipeds.Data_by_Control_Tuition <- ipeds %>%
+filter(!is.na(Tuition.and.fees..2013.14)) %>%
+group_by(Control.of.institution) %>%
+summarise(n=n(),mean_tuition_fess_2013_2014=mean(Tuition.and.fees..2013.14))
+
+ipeds.Data_by_Control_Tuition
+colours<- c("red3","blue4")
+library(ggplot2)
+barplot(ipeds.Data_by_Control_Tuition$mean_tuition_fess_2013_2014,names.arg=ipeds.Data_by_Control_Tuition$Control.of.institution,xlab="Control of Institution",ylab="Tuition fees 201-2014",col=colours,ylim=c(0,35000))
+
+
+#Grouping by Campus_cost_Control
+ipeds.Data_by_Control_Campus_cost <- ipeds %>%
+filter(!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)) %>%
+group_by(Control.of.institution) %>%
+summarise(mean_in_state_price=mean(Total.price.for.in.state.students.living.on.campus.2013.14), mean_out_state_price=mean(Total.price.for.out.of.state.students.living.on.campus.2013.14))
+ipeds.Data_by_Control_Campus_cost
+
+
+
+New_df<- data.frame(x=c(ipeds.Data_by_Control_Campus_cost$mean_in_state_price, ipeds.Data_by_Control_Campus_cost$mean_out_state_price),
+                    grp=rep(c("In state","Out State"),each=2),
+                  subgroup=c("Private","Public"))
+
+
+#Modifying Data
+New_df<-reshape(New_df,idvar="subgroup",timevar="grp",direction="wide")
+
+row.names(New_df)<-New_df$subgroup
+New_df<-New_df[,2:ncol(New_df)]
+New_df<-as.matrix(New_df)
+
+barplot(height=New_df,beside=TRUE,col=colours, ylim=c(0,50000), ylab="On Campus Living Cost")
+
+colours<- c("red3","blue4")
+
+#Grouping by Control_Financial_aid
+ipeds.Data_by_Control_Financial_aid<- ipeds %>%
+filter(!is.na(Percent.of.freshmen.receiving.any.financial.aid)) %>%
+group_by(Control.of.institution) %>%
+summarise(n=n(),mean_Percent.of.freshmen.receiving.any.financial.aid=mean(Percent.of.freshmen.receiving.any.financial.aid))
+
+ipeds.Data_by_Control_Tuition
+colours<- c("red3","blue4")
+library(ggplot2)
+barplot(ipeds.Data_by_Control_Financial_aid$mean_Percent.of.freshmen.receiving.any.financial.aid,names.arg=ipeds.Data_by_Control_Financial_aid$Control.of.institution,xlab="Control of Institution",ylab="% receiving financial aid",col=colours, ylim=c(0,100))
+
+mtext("Public vs Private University - Tuition fees, On campuse living costs, % receiving financial aid ", side = 3, line = - 2, outer = TRUE)
+
+
+
+```
+
+Percentage of students receiving financial aid for both public and private universities is fairly similar. **The major difference comes in the tuition fees of public and private universities. On average, private universities are more than 3 times more expensive than private universities.** The on campus costs for in state students and out state students is similar for private universities. **Public universities on campus living costs are significantly lower than private universities**. These may be the reason why students prefer public universities over private universities. A combination of low tuition fees and low on campus living costs of public universities is what makes Public universities favorable. This is summed up in the plot below.
+
+```{r tuition vs campus cost, warning=FALSE,, out.width = '90%'}
+
+
+## Tuition Fees vs Campus Cost
+p1<-ggplot(aes(x=Total.price.for.in.state.students.living.on.campus.2013.14,y=Tuition.and.fees..2013.14,color=Control.of.institution), data=ipeds)+geom_point( alpha=1/2)+ylab("Tuition fees 2013-14")+xlab("On Campus cost for In state student")+ theme(legend.position="none")
+
+p2<-ggplot(aes(x=Total.price.for.out.of.state.students.living.on.campus.2013.14,y=Tuition.and.fees..2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=1/2)+ylab("Tuition fees 2013-14")+xlab("On Campus cost for Out state student")+ theme(legend.position="bottom")
+
+
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+
+```{r enroll rate vs campus cost, warning=FALSE}
+# suppress the warnings by setting warn=-1
+options(warn=-1)
+## Tuition Fees vs Campus Cost
+
+p1<-ggplot(aes(y=enrollment_rate,x=Tuition.and.fees..2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=1/2)+ylab("Enrollment Rate")+xlab("Tuition fees 2013-14")+ theme(legend.position="none") +scale_x_continuous(breaks=seq(0,50000,10000))
+
+
+p2<-ggplot(aes(y=enrollment_rate,x=Total.price.for.in.state.students.living.on.campus.2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=1/2)+ylab("Enrollment Rate")+xlab("On Campus cost for In state student")+ theme(legend.position="none")
+
+
+
+p3<-ggplot(aes(y=enrollment_rate,x=Total.price.for.out.of.state.students.living.on.campus.2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=1/2)+ylab("Enrollment Rate")+xlab("On Campus cost for Out of state student")+scale_x_continuous(breaks=seq(0,60000,20000))+ theme(legend.position="bottom")
+
+
+
+
+library(gridExtra)
+grid.arrange(p1,p2,p3,ncol=2)
+
+```
+\
+A comparison of the enrollment trends based on on campus costs and tuition fees for public and private universities is shown below. **Enrollment rate for public universities are higher given the low tuition fees and on campus costs for in state students.** For out of state students however, the enrollment rates for public and private universities are follow similar trends given that on campus living costs are more for out of state student than for in state students. **This implies that more in state students join public universities compared to out state.**
+
+To confirm whether the inference that lower tuition rates and lower campus living costs is what determines a students preference over a university, the University with the highest number of enrollments is identified. Texas A & M University-College Station registered the highest number of enrollments: 10241. 
+
+```{r most enrollments uni}
+
+highest_enrollment <- subset(ipeds$Name, ipeds$Enrolled.total==10241) 
+cat("Highest Number of Enrollments were at: ", highest_enrollment)
+
+```
+
+A comparison between the university with highest applications - University of California- Los Angeles (represented by the purple dot)- and university with the highest enrollments - Texas A & M University-College Station (represented by the red dot) - is plotted below.
+
+```{r Texas vs rest application, warning=FALSE}
+
+# suppress the warnings by setting warn=-1
+options(warn=-1)
+
+ipeds.Uni_Texas_AM<- filter(ipeds,ipeds$Name=="Texas A & M University-College Station")
+
+
+# create matrix with 4 columns and 4 rows
+Uni_Texas_AM= matrix(c(ipeds.Uni_Texas_AM$Name, ipeds.Uni_Texas_AM$Highest.degree.offered, ipeds.Uni_Texas_AM$Religious.affiliation,ipeds.Uni_Texas_AM$Tuition.and.fees..2013.14, ipeds.Uni_Texas_AM$Degree.of.urbanization..Urban.centric.locale.,ipeds.Uni_Texas_AM$Percent.of.freshmen.receiving.any.financial.aid,ipeds.Uni_Texas_AM$Total.price.for.in.state.students.living.on.campus.2013.14,ipeds.Uni_Texas_AM$Total.price.for.out.of.state.students.living.on.campus.2013.14), ncol=1, nrow=8)
+ 
+# specify the column names and row names of matrix
+rownames(Uni_Texas_AM) = c('Name','Highest degree offered','Religious affiliation','Tuition and fees 2013-14','Degree of urbanization Urban centric locale','Percent of freshmen receiving any financial aid','Total price for in state students living on campus 2013-14','Total price for out of state students living on campus 2013-14')
+ 
+# assign to table
+Uni_Texas_AM_final=as.table(Uni_Texas_AM)
+ 
+# display
+Uni_Texas_AM_final
+
+
+#Tuition 
+par(mfrow = c(2,2))
+p1<-ggplot(aes(x=Applicants.total,y=Tuition.and.fees..2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=subset(ipeds.Uni_Texas_AM,!is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)),     aes(x=Applicants.total,y=Tuition.and.fees..2013.14), 
+             color='red3',
+             size=3)+scale_x_continuous(breaks=seq(0,70000,20000))+ ylab("Tuition fees 2013-14")+xlab("Total Applications") +geom_point(data=subset(ipeds.Uni_cal,!is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)),     aes(x=Applicants.total,y=Tuition.and.fees..2013.14), 
+             color='purple',
+             size=3)
+
+
+#in state
+p2<- ggplot(aes(x=Applicants.total,y=Total.price.for.in.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=subset(ipeds.Uni_Texas_AM,!is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)), 
+             aes(x=Applicants.total,y=Total.price.for.in.state.students.living.on.campus.2013.14), 
+             color='red3',
+             size=3)+scale_x_continuous(breaks=seq(0,70000,20000))+ ylab("Living Cost-in state students")+xlab("Total Applications")+geom_point(color="yellow3",alpha=1/10)+geom_point(data=subset(ipeds.Uni_cal, !is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)),
+             aes(x=Applicants.total,y=Total.price.for.in.state.students.living.on.campus.2013.14), 
+             color='purple',
+             size=3)
+
+#Out of State
+p3<- ggplot(aes(x=Applicants.total,y=Total.price.for.out.of.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=subset(ipeds.Uni_Texas_AM, !is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)),
+             aes(x=Applicants.total,y=Total.price.for.out.of.state.students.living.on.campus.2013.14), 
+             color='red3',
+             size=3)+scale_x_continuous(breaks=seq(0,70000,20000))+ ylab("Living Cost-out of state students ")+xlab("Total Applications")+geom_point(data=subset(ipeds.Uni_cal, !is.na(Applicants.total),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)),
+             aes(x=Applicants.total,y=Total.price.for.out.of.state.students.living.on.campus.2013.14), 
+             color='purple',
+             size=3)
+
+
+library("patchwork")
+ggp_all <- (p1) / (p2+p3) +    # Create grid of plots with title
+  plot_annotation(title = "Comparing in terms of Number of Applications") & 
+  theme(plot.title = element_text(hjust = 0.5))
+ggp_all 
+
+```
+
+To start off, it is visible that Texas A & M University-College Station has a smaller number of total applicants than University of California - Los Angeles. However, despite the relatively lower Tuition and on campus costs of Texas A & M University-College Station, in terms of Number of Applications, it saw fewer applications than University of California - Los Angeles. This implies that **Tuition and on campus living costs doesn't necessarily influence which Universities the students apply to**. Again it is important to remember that students typically apply to more than one university. For this reason the enrollment rates of Texas A & M University-College Station and University of California- Los Angeles is compared. 
+
+```{r Texas vs rest enrollment}
+ipeds.Uni_Texas_AM<- filter(ipeds,ipeds$Name=="Texas A & M University-College Station")
+ipeds.Uni_cal <- filter(ipeds,ipeds$Name=="University of California-Los Angeles")
+
+# suppress the warnings by setting warn=-1
+options(warn=-1)
+#Tuition 
+par(mfrow = c(2,2))
+p1<-ggplot(aes(x=enrollment_rate,y=Tuition.and.fees..2013.14),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Tuition.and.fees..2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=subset(ipeds.Uni_Texas_AM,!is.na(enrollment_rate),!is.na(Tuition.and.fees..2013.14)),     aes(x=enrollment_rate,y=Tuition.and.fees..2013.14), 
+             color='red3',
+             size=3)+ ylab("Tuition fees 2013-14")+xlab("Enrollment Rate") +geom_point(data=subset(ipeds.Uni_cal,   !is.na(enrollment_rate),!is.na(Tuition.and.fees..2013.14)), aes(x=enrollment_rate,y=Tuition.and.fees..2013.14), 
+             color='purple',
+             size=3)
+#in state
+p3<- ggplot(aes(x=enrollment_rate,y=Total.price.for.in.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=subset(ipeds.Uni_Texas_AM, !is.na(enrollment_rate),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)),
+             aes(x=enrollment_rate,y=Total.price.for.in.state.students.living.on.campus.2013.14), 
+             color='red3',
+             size=3)+ ylab("Living Cost-in state students")+xlab("Enrollment Rate")+geom_point(data=subset(ipeds.Uni_cal, !is.na(enrollment_rate),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)),
+             aes(x=enrollment_rate,y=Total.price.for.in.state.students.living.on.campus.2013.14), 
+             color='purple',
+             size=3)
+
+#Out of State
+p4<- ggplot(aes(x=enrollment_rate,y=Total.price.for.out.of.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=subset(ipeds.Uni_Texas_AM, !is.na(enrollment_rate),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)),
+             aes(x=enrollment_rate,y=Total.price.for.out.of.state.students.living.on.campus.2013.14), 
+             color='red3',
+             size=3)+ ylab("Living Cost-out of state students ")+xlab("Enrollment Rate")+geom_point(data=subset(ipeds.Uni_cal, !is.na(enrollment_rate),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)),
+             aes(x=enrollment_rate,y=Total.price.for.out.of.state.students.living.on.campus.2013.14), 
+             color='purple',
+             size=3)
+
+
+library("patchwork")
+ggp_all <- (p1 ) / (p3 + p4) +    # Create grid of plots with title
+  plot_annotation(title = "Comparing in terms of Number of Enrollments") & 
+  theme(plot.title = element_text(hjust = 0.5))
+ggp_all 
+
+```
+
+The popularity of Texas A & M University-College Station in terms of enrollment rate may then come from the **relatively lower Tuition fees.**  In addition to this the **on campus costs for both In state and Out of state students at Texas A & M University-College Station is lower** than that of University of California- Los Angeles. Therefore, **tuition fees and on campus costs have an influence on where the student enrolls.**
+
+Now that it has been established that costs have a huge influence on where the student enrolls but not necessarily on where the student applies. Apart from costs, other factors such as highest degree offered, location and Endowment Assests are analysed below, to identify whether any of these factors have an influence on the student's decision. 
+
+## Does the highest degree offered influene number of applications and enrollments ?
+Many universities offer more than one degree. In this section, whether the highest degree offered any influence on student's decision is analysed. 
+
+```{r Highest degree offered applications}
+library(ggplot2)
+ggplot(aes(y=Highest.degree.offered,x=Applicants.total), data=subset(ipeds, !is.na(Highest.degree.offered),!is.na(Applicants.total)))+geom_point(color="purple",alpha=1/3)+theme(axis.text.y=element_text(hjust=0))+ xlab("Total Applications")+ylab("Highest Degree Offered")
+
+```
+
+The plot shows that students typically apply to universities that offer Doctor's degree - both research/scholarship and professional practice. **This implies that students apply to university with an intention to potentially continue to pursue a higher degree in the same university.**
+
+
+```{r Highest degree offered enrollment rate}
+library(ggplot2)
+ggplot(aes(y=Highest.degree.offered,x=enrollment_rate), data=subset(ipeds, !is.na(Highest.degree.offered),!is.na(enrollment_rate)))+geom_point(color="purple",alpha=1/3)+theme(axis.text.y=element_text(hjust=0))+ xlab("Enrollment Rate (%)")+ylab("Highest Degree Offered")
+
+```
+
+**The enrollment plot shows that the highest degree offered doesn't influence where the student enrolls, as the enrollment rate for all the degrees are fairly similar.** 
+
+## Does the university location influene number of applications and enrollments ?
+
+The influence of location on students decision is analysed in this section. Most Universities considered in this data set are in the East Coast and Central United States.
+```{r Map view total}
+library(tidyverse)
+library(sf)
+library(mapview)
+
+
+library(ggplot2)
+mapview(ipeds, xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE)
+```
+
+```{r Location applications}
+library(ggplot2)
+ggplot(aes(y=Degree.of.urbanization..Urban.centric.locale.,x=Applicants.total), data=subset(ipeds, !is.na(Degree.of.urbanization..Urban.centric.locale.),!is.na(Applicants.total)))+geom_point(color="purple",alpha=1/3)+xlab("Total Applications")+ylab("Degree of Urbanization")
+
+```
+
+```{r Map view applications}
+library(tidyverse)
+library(sf)
+library(mapview)
+
+
+library(ggplot2)
+mapview(subset(ipeds,ipeds$Degree.of.urbanization..Urban.centric.locale.=="City"), xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE)
+
+```
+
+**Students are typically applying to Cities. Most of these cities are in the East Coast.**
+
+```{r Location enrollment rate}
+library(ggplot2)
+ggplot(aes(y=Degree.of.urbanization..Urban.centric.locale.,x=enrollment_rate), data=subset(ipeds, !is.na(Degree.of.urbanization..Urban.centric.locale.),!is.na(enrollment_rate)))+geom_point(color="purple",alpha=1/3)+xlab("Enrollment Rate (%)")+ylab("Degree of Urbanization")
+
+```
+
+```{r Map view enrollment rate}
+library(tidyverse)
+library(sf)
+library(mapview)
+
+
+library(ggplot2)
+mapview(subset(ipeds,ipeds$Degree.of.urbanization..Urban.centric.locale.=="City"| ipeds$Degree.of.urbanization..Urban.centric.locale.=="Town"), xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE)
+
+```
+
+While students are typically applying to Cities, students in America are enrolling in cities and towns across America. **Therefore, the degree of urbanization doesn't influence a student's decision to enroll in a particular university.**
+
+## Does Endownment Assets Matter ?
+
+Endowment is a fund, set up to provide long-term support for a particular nonprofit organization or cause. There are typically two endowment - GASB and FASB. The GASB is responsible for establishing standards for federal, state and local governments, while the FASB is responsible for establishing standards for non-profits, as well as private and public companies that follow the Generally Accepted Accounting Principles (GAAP).
+
+```{r FASB GASB applications}
+library(ggplot2)
+
+p1<-ggplot(aes(y=Endowment.assets..year.end..per.FTE.enrollment..FASB.,x=Applicants.total), data=subset(ipeds, !is.na(Endowment.assets..year.end..per.FTE.enrollment..FASB.),!is.na(Applicants.total)))+geom_point(alpha=1/2,color="purple")+ylab("Endowment assets (FASB)")+xlab("Total Applications")
+
+p2<-ggplot(aes(y=Endowment.assets..year.end..per.FTE.enrollment..GASB.,x=Applicants.total), data=subset(ipeds, !is.na(Endowment.assets..year.end..per.FTE.enrollment..GASB.),!is.na(Applicants.total)))+geom_point(alpha=1/2,color="purple")+ylab("Endowment assets (GASB)")+xlab("Total Applications")
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+**Endowment Assets, both FASB and GASB, does not influence the students decision to apply to a certain university.**
+
+```{r FASB GASB enrollment rate}
+library(ggplot2)
+p1<-ggplot(aes(y=Endowment.assets..year.end..per.FTE.enrollment..FASB.,x=enrollment_rate), data=subset(ipeds, !is.na(Endowment.assets..year.end..per.FTE.enrollment..FASB.),!is.na(enrollment_rate)))+geom_point(alpha=1/2,color="purple")+ylab("Endowment assets (FASB)")+xlab("Enrollment Rate")
+
+p2<-ggplot(aes(y=Endowment.assets..year.end..per.FTE.enrollment..GASB.,x=enrollment_rate), data=subset(ipeds, !is.na(Endowment.assets..year.end..per.FTE.enrollment..GASB.),!is.na(enrollment_rate)))+geom_point(color="purple",alpha=1/2)+ylab("Endowment assets (FASB)")+xlab("Enrollment Rate")
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=2)
+```
+
+
+**Similarly, Endowment Assets, both FASB and GASB, does not influence the students decision to enroll to a certain university.**
+
+
+
+
+
