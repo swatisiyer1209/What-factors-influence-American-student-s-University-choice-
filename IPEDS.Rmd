@@ -1,0 +1,1449 @@
+---
+title: "What factors influence American student's University choice ?"
+output:
+  html_document:
+    df_print: paged
+    geometry: margin=2cm
+    fig_crop: no
+  pdf_document: 
+    fig_crop: no
+date: "02-04-2023"
+editor_options:
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,out.width='1200px', dpi=200,warning=FALSE, message=FALSE)
+```
+
+
+## Introduction
+Every year tens of thousands of American’s apply to universities across the country. The project endeavors to conduct an Exploratory Data Analysis (EDA) on the Integrated Postsecondary Education Data System (IPEDS) dataset, encompassing a comprehensive array of information on universities across America. With an extensive set of variables ranging from institutional characteristics and academic offerings to enrollment statistics and financial aspects, the primary objective is to discern the factors influencing students' choices of universities. Through this EDA, the study aims to uncover patterns, relationships, and trends within the dataset, shedding light on crucial aspects that impact students' decisions when selecting an educational institution. By delving into the wealth of data provided, the analysis seeks to contribute valuable insights into the intricate dynamics that shape the preferences of prospective students in the higher education landscape.
+
+The problem statement for the project can be summarized as: **What factors influence American student's University choice ?**
+
+## Dataset
+The data set, derived from the Integrated Postsecondary Education Data System (IPEDS), encompasses a comprehensive array of information on universities in the United States. It includes diverse variables such as institutional characteristics, academic offerings, enrollment statistics, financial details, and demographic information. The data set considered for the current study is from the year 2013 and consists data from **1533** Universities.  
+
+## Guiding Questions
+Given the vast array of data, a set of guiding questions are derived for the current analysis: <br>
+
+**1. Application, Admission and Enrollment Trends**<br>
+    1.1 What is the relationship between admission rates and the number of enrolled students?<br>
+    1.2 Do universities with higher enrollment rates have specific admission criteria?<br>
+    
+**2.Academic Offerings **<br>
+    2.1 Are there specific degrees (e.g., bachelor's, master's, or doctoral) that attract more students? <br>
+    
+**3.Financial Factors**<br>
+    3.1 How do tuition and fees vary across different universities and how does this impact enrollment?<br>
+    3.2 Are there correlations between total costs (in-state or out-of-state) and enrollment patterns? <br>
+    
+**4.Location and Urbanization**<br>
+    4.1 Does the geographic location or urbanization level of the institution influence student choices?
+
+**5.Demographics and Diversity**<br>
+    5.1 Does the diversity of student populations impact enrollment decisions?
+  
+
+
+
+```{r reading data,include=FALSE}
+## Reading the Data
+library(dplyr)
+ipeds <- read.csv("IPEDS_data.csv")
+```
+```{r theme}
+theme_ben <- function(base_size = 14) {
+  theme_bw(base_size = base_size) %+replace%
+    theme(
+      plot.title = element_text(size = rel(0.6), face = "bold", margin = margin(0,0,5,0), hjust = 0),
+      
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      # Les axes
+      axis.title = element_text(size = rel(0.5), face = "bold"),
+      axis.text = element_text(size = rel(0.50), face = "bold"),
+      axis.line = element_line(color = "black", arrow = arrow(length = unit(0.3, "lines"), type = "closed")),
+      # La légende
+      legend.title = element_text(size = rel(0.50), face = "bold"),
+      legend.text = element_text(size = rel(0.5), face = "bold"),
+      legend.key = element_rect(fill = "transparent", colour = NA),
+      legend.key.size = unit(1.5, "lines"),
+      legend.background = element_rect(fill = "transparent", colour = NA),
+      # Les étiquettes dans le cas d'un facetting
+      strip.background = element_rect(fill = "#17252D", color = "#17252D"),
+      strip.text = element_text(size = rel(0.5), face = "bold", color = "white", margin = margin(5,0,5,0))
+    )
+}
+```
+
+## Application, Admissions and Enrollment Trends
+
+On average universities across America received about 6400 applications in 2013.The minimum and maximum values show the different scenarios covered in the data set, with one university receiving just under 72700 applications whereas the other receiving just 4. Similar extremes are identified in the admissions and enrollment trends. 
+```{r Overview of 2013 University Applications, Admissions and Enrollment trends, results = "hold"}
+
+Applications<-na.omit(ipeds$Applicants.total) 
+cat("Applicants Summary:",sep="\n")
+summary(Applications)
+
+Admissions <- na.omit(ipeds$Admissions.total)
+cat("Admissions Summary:",sep="\n") 
+summary(Admissions)
+
+Enrollments <- na.omit(ipeds$Enrolled.total)
+cat("Enrollments Summary:",sep="\n")
+summary(Enrollments)
+
+```
+### Histogram view of Applicants, Admissions and Enrollment trends
+
+A histogram of the data set overview is performed to visualize the trends. The histograms for all three parameters are **skewed right** which confirms the trend of the means being larger than the median as seen above. Because of the skewed application trends the median values are looked into to better represent the trends. The median values are: **3360 applications**, **2056 admissions** and **538 enrollments**. 
+
+```{r Histogram view of Applicants, Admissions and Enrollment trends}
+
+library(ggplot2)
+p1<- ggplot(aes(x=Applicants.total), data=subset(ipeds,!is.na(Applicants.total)))+geom_histogram(bins=30,color="black",fill="salmon2") + ggtitle(" Applications")+xlab("Applications Submitted")+theme_ben()
+
+p2<- ggplot(aes(x=Admissions.total),data=subset(ipeds,!is.na(Admissions.total)))+geom_histogram(bins=30,color="black",fill="seagreen3")+ggtitle("Admissions ")+xlab("Admissions Offered")+theme_ben()
+
+p3<- ggplot(aes(x=Enrolled.total), data=subset(ipeds,!is.na(Enrolled.total)))+geom_histogram(bins=30,color="black",fill="slateblue3")+ggtitle("Enrollment")+xlab("Enrolled")+theme_ben()
+library(patchwork)
+combined1<-p1+p2+p3
+
+combined1+ plot_annotation('Histogram view of Applicants, Admissions and Enrollment trends',theme=theme(plot.title=element_text(face="bold",hjust=0.5))) +theme_ben()
+```
+
+As seen above that majority of universities received under 5000 applications and just a little over 2000 students were admitted. On the other end of the spectrum some universities received over 30000 applications the same year. Similarly some universities admitted more than 10000 students. Therefore it leads to the question - **Does Acceptance rate influence Student's choice of applying to a university ? **
+
+
+### Does Acceptance rate influence Student's choice of applying to a university ? 
+
+College admission process is highly competitive. Every student wants to be accepted into the university they apply to. Therefore does the number of admissions offered influence number of applications ? 
+
+```{r Number of Admissions offered vs Number of Applicants, warning = FALSE, message=FALSE, out.width = '100%'}
+library(dplyr)
+theme_set(theme_ben())
+library(ggplot2)
+ggplot(aes(x=Applicants.total,y=Admissions.total),data=subset(ipeds, !is.na(Applicants.total),!is.na(Admissions.total)))+geom_point(alpha=0.5,color="salmon2",shape=20,size=3)+scale_x_continuous(breaks=seq(0,72676,10000))+ scale_y_continuous(breaks=seq(0,40000,10000))+ggtitle("Number of Admissions offered vs Number of Applicants")+theme(plot.title = element_text(hjust = 0.5))+ xlab("Number of Applicants")+ylab("Number of Admissions Offered") + geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F,col="seagreen3")
+
+```
+
+What can be seen from the above plot is that for applications under 10000, there is a linear relation between the number of admissions and number of applications. Beyond the 10000 applications the curve steepness diminishes. For example, there are universities that have 15000 admissions offered that have received anywhere between 15000 applications to under 60000 applications. On the other hand universities that offer under 5000 admissions have seen a high number of applications. Therefore there seems to be no direct influence of number of admissions offered to the number of applications. A better parameter to compare the two is the acceptance rate - Acceptance rate is the ratio of admissions offered to the total number of applications.
+
+```{r acceptance rate vs number of applications}
+theme_set(theme_ben())
+ipeds$acceptance_rate<-ipeds$Admissions.total/ipeds$Applicants.total
+ggplot(aes(x=Applicants.total,y=acceptance_rate*100),data=subset(ipeds, !is.na(Applicants.total),!is.na(acceptance_rate)))+geom_point(alpha=0.5,color="salmon2",shape=20,size=3)+scale_x_continuous(breaks=seq(0,72676,10000)) + ggtitle("Acceptance rate vs Number of Applicants")+theme(plot.title = element_text(hjust = 0.5))+ xlab("Number of Applications")+ ylab("Acceptance Rate (%)")+ geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F,col="palegreen3")
+
+```
+
+It is interesting to see from the plot that students apply to universities despite relatively low admissions offered. Some of the highest university application where to universities that have less than 50% acceptance rate. For example, University of California which received the highest number of applications in 2013-14,has an acceptance rate of just under 25%. On the other hand, there is no particular trend for universities that have high acceptance rate they receive number of applications anywhere between 0 to 30000. Therefore for higher acceptance rate number of applications has no particular trend exists. For lower acceptance however a large number of students apply.  **Therefore, a high acceptance rate does not imply a high number of applications.**
+
+```{r highest apps and acceptance rate of uni}
+theme_set(theme_ben())
+highest_application <- subset(ipeds, ipeds$Applicants.total>70000) 
+cat("Highest Number of Applications were received by: ", highest_application$Name)
+cat("Acceptance Rate of University of California-Los Angeles: ",round(highest_application$acceptance_rate*100),"%")
+```
+
+To determine if this is the trend across different universities - such as Diversity or religiously affiliated universities or prestigious universities - acceptance rate vs Number of applications for these universities are analysed as well. What can be seen from the plot below and the table confirms the trend that the acceptance rate despite being similar for the different cases the median number of applications where quite different. **Therefore acceptance rate does not influence the students choice. Prestigious universities (based on IVY league university 75th percentile SAT scores) see a higher number of applications despite low acceptance rate, which is inline with the findings above.** 
+
+
+```{r Acceptance Rate vs Number of Admissions offered different unis}
+theme_set(theme_ben())
+accep<-summary(ipeds$acceptance_rate)
+apps<-summary(ipeds$Applicants.total)
+mean_accep<-accep[4]*100
+mean_apps<-apps[4]
+med_accep<-accep[3]*100
+med_apps<-apps[3]
+
+
+p1<-ggplot(aes(x=Applicants.total,y=acceptance_rate*100),data=subset(ipeds, !is.na(Applicants.total), !is.na(acceptance_rate)))+geom_point(alpha=0.3,color="palegreen3",shape=20,size=3)+ ggtitle(" All Universities")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Acceptance Rate (%)")+xlab("Number of Applications")+xlim(0,20000)+geom_hline(yintercept=med_accep, color = "red")+geom_vline(xintercept=med_apps, color = "red")+xlim(0,20000)
+
+
+data_div<-subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable")
+
+accep_div<-summary(data_div$acceptance_rate)
+apps_div<-summary(data_div$Applicants.total)
+mean_accep_div<-accep_div[4]*100
+mean_apps_div<-apps_div[4]
+med_accep_div<-accep_div[3]*100
+med_apps_div<-apps_div[3]
+
+p2<-ggplot(aes(x=Applicants.total,y=acceptance_rate*100),data=subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable"))+geom_point(color="palegreen3",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Acceptance Rate (%)")+xlab("Number of Applications")+ ggtitle(" Religious or diversity affiliation")+ylim(0,100)+geom_hline(yintercept=med_accep_div, color = "red")+geom_vline(xintercept=med_apps_div, color = "red")+xlim(0,20000)
+
+sat_score<-(ipeds$SAT.Critical.Reading.75th.percentile.score+ipeds$SAT.Math.75th.percentile.score+ipeds$SAT.Writing.75th.percentile.score)
+
+data_pre<-subset(ipeds, sat_score >=2000)
+accep_pre<-summary(data_pre$acceptance_rate)
+apps_pre<-summary(data_pre$Applicants.total)
+mean_accep_pre<-accep_pre[4]*100
+mean_apps_pre<-apps_pre[4]
+med_accep_pre<-accep_pre[3]*100
+med_apps_pre<-apps_pre[3]
+
+
+p3<-ggplot(aes(x=Applicants.total,y=acceptance_rate*100),data=data_pre)+geom_point(color="palegreen3",alpha=0.5,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Acceptance Rate (%)")+xlab("Number of Applications")+theme(plot.title = element_text(hjust = 0.5))+ylim(0,100)+geom_hline(yintercept=med_accep_pre, color = "red")+geom_vline(xintercept=med_apps_pre, color = "red")+xlim(0,20000)+ ggtitle(" Prestigious Universities")
+
+combined1<-p1+p2+p3
+
+combined1+ plot_annotation('Acceptance Rate vs Number of Applications Trends',theme=theme(plot.title=element_text(face="bold",hjust=0.5)))
+
+
+df<-data.frame(University=c("All Universities","Religious or Diversity Affliation","Prestigious Universities"), Acceptance_Rate= c(med_accep,med_accep_div,med_accep_pre), Apps=c(med_apps,med_apps_div,med_apps_pre))
+df
+
+```
+
+
+**Therefore, universities that have stringent acceptance rate see high number of applications - this implies that the university status is considerable factor when it comes to applications.** Next the enrollment trends are analysed. 
+
+
+### Does Admissions offered influence student's choice to enroll to a university ? 
+
+Typically students apply to more than one university, with several university being the back up choice. This is why it is necessary to look into the comparison of number of admissions offered to the number of students who actually enrolled. Enrollment rate is an indicator for student preference rather application data since a student may apply to several universities, may get offers from several universities but enrolls only in one. 
+
+
+```{r Enrollment vs Number of Admissions offered , warning = FALSE,, out.width = '100%'}
+theme_set(theme_ben())
+ggplot(aes(x=Admissions.total,y=Enrolled.total),data=subset(ipeds, !is.na(Admissions.total),!is.na(Enrolled.total)))+geom_point(alpha=0.5,color="slateblue2",shape=20,size=3)+ ggtitle(" Total Enrollment vs Number of Admissions offered")+theme(plot.title = element_text(hjust = 0.5))+ ylab(" Total Enrollment ")+xlab("Number of Admissions") + geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F,col="seagreen3")
+
+```
+ 
+Total enrolled is significantly low compared to the number of admissions offered. The trend remains somewhere around half the people who are offered admissions, enroll in that university. Higher number of admissions still sees under 50% enrolled. Just as in the case of number of admissions vs number of applications, a better parameter to determine the trend is enrollment rate -  Enrollment rate is the ratio of the number of students who enrolled compared to the number of students who were offered an admission. 
+ 
+```{r Enrollment rate vs Number of Admissions offered , warning = FALSE,, out.width = '100%'}
+ipeds$enrollment_rate <- ipeds$Enrolled.total/ipeds$Admissions.total
+theme_set(theme_ben())
+ggplot(aes(x=Admissions.total,y=enrollment_rate*100),data=subset(ipeds, !is.na(Admissions.total),!is.na(enrollment_rate)))+geom_point(alpha=0.5,color="slateblue2",shape=20,size=3)+ ggtitle(" Enrollment Rate(%) vs Number of Admissions offered")+theme(plot.title = element_text(hjust = 0.5))+ ylab(" Enrollment Rate(%) ")+xlab("Number of Admissions") + geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F,col="seagreen3")
+
+``` 
+
+
+ 
+ 
+```{r Enrollment Rate vs Number of Admissions offered 2}
+theme_set(theme_ben())
+ipeds$enrollment_rate <- ipeds$Enrolled.total/ipeds$Admissions.total
+
+enrol<-summary(ipeds$enrollment_rate)
+admin<-summary(ipeds$Admissions.total)
+
+mean_enroll<-enrol[4]*100
+mean_admin<-admin[4]
+med_enroll<-enrol[3]*100
+med_admin<-admin[3]
+
+p1<-ggplot(aes(x=Admissions.total,y=enrollment_rate*100),data=subset(ipeds, !is.na(Admissions.total), !is.na(enrollment_rate)))+geom_point(alpha=0.3,color="slateblue2",shape=20,size=3)+ ggtitle(" All Universities")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Number of Admissions")+geom_hline(yintercept=med_enroll, color = "red")+geom_vline(xintercept=med_admin, color = "red")+xlim(0,20000)+geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F,col="seagreen3")
+
+
+data_div<-subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable")
+enrol_div<-summary(data_div$enrollment_rate)
+admin_div<-summary(data_div$Admissions.total)
+mean_enroll_div<-enrol_div[4]*100
+mean_admin_div<-admin_div[4]
+med_enroll_div<-enrol_div[3]*100
+med_admin_div<-admin_div[3]
+
+p2<-ggplot(aes(x=Admissions.total,y=enrollment_rate*100),data=subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable"))+geom_point(color="slateblue2",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Number of Admissions")+ ggtitle(" Religious or diversity affiliation")+ylim(0,100)+geom_hline(yintercept=med_enroll_div, color = "red")+geom_vline(xintercept=med_admin_div, color = "red")+xlim(0,20000)+geom_smooth(formula = y ~ x, method = "loess",se=F,col="seagreen3")
+
+sat_score<-(ipeds$SAT.Critical.Reading.75th.percentile.score+ipeds$SAT.Math.75th.percentile.score+ipeds$SAT.Writing.75th.percentile.score)
+
+data_pre<-subset(ipeds, sat_score >=2000)
+enrol_pre<-summary(data_pre$enrollment_rate)
+admin_pre<-summary(data_pre$Admissions.total)
+mean_enroll_pre<-enrol_pre[4]*100
+mean_admin_pre<-admin_pre[4]
+med_enroll_pre<-enrol_pre[3]*100
+med_admin_pre<-admin_pre[3]
+
+p3<-ggplot(aes(x=Admissions.total,y=enrollment_rate*100),data=data_pre)+geom_point(color="slateblue2",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Number of Admissions")+ ggtitle(" Prestigious Universities")+theme(plot.title = element_text(hjust = 0.5))+ylim(0,100)+xlim(0,20000)+geom_hline(yintercept=med_enroll_pre, color = "red")+geom_vline(xintercept=med_admin_pre, color = "red")+geom_smooth(formula = y ~ x, method = "loess",se=F,col="seagreen3")
+
+combined1<-p1+p2+p3
+combined1+ plot_annotation('Enrollment Rate vs Number of Admissions Trends',theme=theme(plot.title=element_text(face="bold",hjust=0.5)))
+
+
+df<-data.frame(University=c("All Universities","Religious or Diversity Affliation","Prestigious Universities"), Enrollment_rate= c(med_enroll,med_enroll_div,med_enroll_pre), Admins=c(med_admin,med_admin_div,med_admin_pre))
+df
+```
+
+**What can be seen is the steep decline in enrollment rate with number of admissions offered.** This can be attributed to the fact that students apply to more than one university. The enrollment rate plot shows that enrollment rate for universities where the number of admissions offered are low, has no particular trend. This trend remains the same for religious or diversity affiliated universities. For Prestigious universities however the enrollment rate is higher despite fairly similar median admissions offered compared to all universities. 
+
+Therefore, as in the case of acceptance rate, students don't particularly enroll in universities that have high admission offers and **number of admission offered doesn't significantly influence a students choice to enroll. What is however important to note is that universities that offer lower number of admissions see higher enrollment rate. ** 
+
+To confirm the above analysis enrollment rate is plotted against acceptance rate.
+
+### Enrollment rate vs Acceptance rate 
+
+**The plot confirms the trend, typically the higher the acceptance rate the lower seems the enrollment rate, implying that a higher acceptance rate doesn't influence a student's decision to apply or enroll.** This may have to do with the fact that most prestigious universities have a relatively low acceptance rate and therefore there is a high chance of a student enrolling at these universities if accepted. This is why the enrollment rate for lower acceptance rate is significantly higher. The relatively lower enrollment rate for higher acceptance rate could be due to students applying to multiple universities. Acceptance rate below 25% confirms lower the acceptance rate higher the enrollment rate trend. Beyond that there is a valley where between 50-80% acceptance rate,has relatively low enrollment rate. Beyond this, universities that see 80-100% acceptance rate see significant number of enrollment (above average and median). therefore it cannot be asserted that these are the only factors that play a role. There are other more important parameters that students look at while applying and enrolling such as -location, degree offered, tuition and accommodation fees, funding etc. 
+
+```{r Enrollment Rate vs Acceptance Rate, warning=FALSE}
+theme_set(theme_ben())
+enrol<-summary(ipeds$enrollment_rate)
+accep<-summary(ipeds$acceptance_rate)
+
+mean_enroll<-enrol[4]*100
+mean_accep<-accep[4]*100
+med_enroll<-enrol[3]*100
+med_accep<-accep[3]*100
+
+
+ggplot(aes(x=acceptance_rate*100,y=enrollment_rate*100),data=subset(ipeds, !is.na(acceptance_rate), !is.na(enrollment_rate)))+geom_point(color="plum3",alpha=0.6,shape=20,size=3)+ ggtitle(" Enrollment Rate vs Acceptance Rate")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Acceptance Rate (%)")+geom_hline(yintercept=med_enroll,color="red")+geom_vline(xintercept=med_accep,color="red")+geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F)
+
+
+```
+
+
+```{r Enrollment rate vs acceptance rate filtered, warning=FALSE}
+theme_set(theme_ben())
+p1<-ggplot(aes(x=acceptance_rate*100,y=enrollment_rate*100),data=subset(ipeds, !is.na(acceptance_rate), !is.na(enrollment_rate)))+geom_point(color="plum3",alpha=1/2,shape=20,size=3)+ ggtitle("All Universities")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Acceptance Rate(%)")+geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F)+geom_hline(yintercept=med_enroll, color = "red")+geom_vline(xintercept=med_accep, color = "red")+ylim(0,100)+xlim(0,100)
+
+
+p2<-ggplot(aes(x=acceptance_rate*100,y=enrollment_rate*100),data=subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable"))+geom_point(color="plum3",alpha=0.8,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Acceptance Rate(%)")+ ggtitle(" Religious or diversity affiliation")+geom_smooth(formula = y ~ x, method = "loess",se=F)+geom_hline(yintercept=med_enroll_div, color = "red")+geom_vline(xintercept=med_accep_div, color = "red")+ylim(0,100)+xlim(0,100)
+
+
+p3<-ggplot(aes(x=acceptance_rate*100,y=enrollment_rate*100),data=data_pre)+geom_point(color="plum3",alpha=0.8,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Acceptance Rate(%)")+ ggtitle(" Prestigious Universities")+theme(plot.title = element_text(hjust = 0.5))+geom_smooth(formula = y ~ x, method = "loess",se=F)+geom_hline(yintercept=med_enroll_pre, color = "red")+geom_vline(xintercept=med_accep_pre, color = "red")+ylim(0,100)+xlim(0,100)
+
+
+combined1<-p1+p2+p3
+combined1+ plot_annotation('Enrollment Rate vs Acceptance Rate Trends',theme=theme(plot.title=element_text(face="bold",hjust=0.5)))
+
+
+```
+
+
+
+## Academic Offerings
+
+### Does the highest degree offered influence number of applications and enrollments ?
+
+Many universities offer more than one degree. In this section, whether the highest degree offered any influence on student's decision is analysed. For concise study, all types of Doctor's degree are combined. The highest degree offered by most universities considered in the study is **Doctor's Degree**, which is followed by **Master's Degree** and finally **Bachelor's Degree**. Therefore, again due to the variation in number of university and degree offered considered, the median values are considered. 
+
+
+```{r Number of Universities in the Dataset and Highest degree offered}
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+
+#splitting doctors degree to type of doctors degree additional
+ipeds<- ipeds %>% 
+  separate(Highest.degree.offered, into = c("Highest.degree.offered", "Additional"), sep = "-")
+deg_colors<-c("lightgreen", "lightblue", "mistyrose")
+#grouping by Highest_degree_offered
+ipeds.Highest_degree_group <- ipeds %>% 
+  filter(!is.na(Applicants.total)) %>%
+  group_by(Highest.degree.offered) %>%
+  summarise(n=n(),Mean_Applications=mean(Applicants.total),Mean_Admissions=mean(Admissions.total),Mean_Enrollment=mean(Enrolled.total))
+
+ipeds.Highest_degree_group
+x<-order(ipeds.Highest_degree_group$n)
+numb<-ipeds.Highest_degree_group$n[x]
+b<-barplot(ipeds.Highest_degree_group$n[x],names.arg=ipeds.Highest_degree_group$Highest.degree.offered[x],col=deg_colors,main="Number of Universities in the Dataset and Highest degree offered",xlab="Count",ylim=c(0,700))
+text(x=b,y=numb,  labels = round(numb, 1),
+  pos=3.2,  offset =0.5)
+```
+
+Analyzing where the students are applying based on highest degree offered. The plot below shows that students typically apply to universities that offer Doctor's degree - both research/scholarship and professional practice. **This implies that students apply to university with an intention to potentially continue to pursue a higher degree in the same university. Same stands for enrollment - Students enroll in universities that offer a Doctor's degree.** 
+
+```{r Highest degree offered applications, admins, enrolls}
+library(ggplot2)
+theme_set(theme_ben())
+deg_colors<-c("lightgreen", "mistyrose","lightblue")
+Deg_df<- data.frame(grp=ipeds$Highest.degree.offered,value=ipeds$Applicants.total)
+# one box per variety
+p1<-ggplot(Deg_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) + scale_fill_manual(values=deg_colors)+xlab("Highest Degree Offered")+ylab("Number of Applications")+ theme(legend.position = "none")+ggtitle("Total Applications")+ylim(0,30000)+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1)+theme(axis.text.x = element_text(angle=90))
+
+Deg_df<- data.frame(grp=ipeds$Highest.degree.offered,value=ipeds$Admissions.total)
+# one box per variety
+p2<-ggplot(Deg_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) + scale_fill_manual(values=deg_colors)+xlab("Highest Degree Offered")+ylab("Number of Admissions")+ theme(legend.position = "none")+ggtitle(" Admissions offered")+ylim(0,20000)+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1)+theme(axis.text.x = element_text(angle=90)) 
+
+Deg_df<- data.frame(grp=ipeds$Highest.degree.offered,value=ipeds$Enrolled.total)
+# one box per variety
+p3<-ggplot(Deg_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) + scale_fill_manual(values=deg_colors)+xlab("Highest Degree Offered")+ylab("Total Enrolled")+ theme(legend.position = "none")+ggtitle("Total Enrolled")+ylim(0,10000)+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1)+theme(axis.text.x = element_text(angle=90)) 
+
+combined1<-p1+p2+p3
+combined1+ plot_annotation('Box Plot trends for Highest Degree offered vs Applications, Admissions and Enrollment',theme=theme(plot.title=element_text(face="bold",hjust=0.5)))
+
+```
+
+**However since the total number of enrolled or total applications only paint one sided picture, it is important to consider into effect the number of admissions offered. Therefore, the acceptance and enrollment rates are better parameter. ** The plot below shows that the enrollment rate for universities offering different highest degree remains fairly similar. **Therefore, there may be a preference in applying to universities that offer higher level of degree but when it comes to enrollment it is not a factor that influences the students choice. **
+
+
+```{r Highest degree offered enrolled rate}
+library(ggplot2)
+theme_set(theme_ben())
+deg_colors<-c("lightgreen",  "mistyrose","lightblue")
+
+Deg_df<- data.frame(grp=ipeds$Highest.degree.offered,value=ipeds$enrollment_rate*100)
+# one box per variety
+ggplot(Deg_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) + scale_fill_manual(values=deg_colors)+xlab("Highest Degree Offered")+ylab("Enrollment Rate (%)")+ theme(legend.position = "none")+ggtitle("Box Plot trends for Highest Degree offered vs Enrollment Rate")+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1) 
+
+```
+
+This is confirmed by the pie chart below, the median applications for universities where the highest degree offered is Doctor's degree are higher however, the enrollment rates are fairly similar. The values in the brackets show the actual median values. 
+
+
+```{r universities and degrees offered piechart,out.width="80%"}
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+
+#splitting doctors degree to type of doctors degree additional
+ipeds<- ipeds %>% 
+  separate(Highest.degree.offered, into = c("Highest.degree.offered", "Additional"), sep = "-")
+
+#grouping by Highest_degree_offered
+ipeds.Highest_degree_group <- ipeds %>% 
+  filter(!is.na(Applicants.total)) %>%
+  filter(!is.na(Admissions.total)) %>%
+  filter(!is.na(Enrolled.total)) %>%
+  group_by(Highest.degree.offered) %>%
+  summarise(n=n(),Med_Applications=median(Applicants.total), Med_enrolrate=median(Enrolled.total/Admissions.total)*100)
+
+
+
+piepercent<- paste0(round(ipeds.Highest_degree_group$Med_Applications/sum(ipeds.Highest_degree_group$Med_Applications)*100,1), "%","(",ipeds.Highest_degree_group$Med_Applications,")")
+p1<-pie(ipeds.Highest_degree_group$Med_Applications,labels =piepercent,main = "Median Applications ",col=c("lightgreen", "mistyrose","lightblue"))
+
+piepercent<- paste0(round(ipeds.Highest_degree_group$Med_enrolrate/sum(ipeds.Highest_degree_group$Med_enrolrate)*100,1), "%", "(",round(ipeds.Highest_degree_group$Med_enrolrate,1),"%)")
+p2<-pie(ipeds.Highest_degree_group$Med_enrolrate,labels=piepercent,main = "Median Enrollment Rate ",col=c("lightgreen", "mistyrose","lightblue"))
+
+
+
+```
+
+## Financial Factors
+
+### Tuition Fees
+Now that it has been established that the acceptance rate does not influence the students choice and that the type of highest degree offered only influences where the student applies not particularly where the student enrolls. The next factor that is analysed is the Tuition fees. Globally, United States sees the highest number of students that apply for student loans. Therefore, a look at the tuition fees and application and enrollment trends is analysed. 
+
+What can be seen from the plot below is that **the number of applications are high for universities with lower tuition fees.** There is a relatively low number for applications for universities with tuition fees between 20-30K. Beyond this there is an increase in number of applications for higher tuition fees. The reason for this can be asserted to prestigious universities that have relatively higher tuition fees and high number of applications as seen previously. 
+
+```{r Tuition fee vs aaplications}
+# suppress the warnings by setting warn=-1
+theme_set(theme_ben())
+options(warn=-1)
+library(ggplot2)
+
+ggplot(aes(x=Tuition.and.fees..2013.14, y=Applicants.total),data=ipeds)+geom_point(color="salmon2",alpha=1/2,shape=20,size=3)+xlab("Tuition Fees ")+ylab("Total Applications")+ ggtitle(" Total Applications vs Tuition Fees")+theme(plot.title = element_text(hjust = 0.5))+geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F)
+
+
+```
+
+To confirm the trend of higher applications for higher tuition fees attributing to universities being prestigious, the trend is analysed based on university type. From the plot below, **it is confirmed that the median application and tuition fees for prestigious universities is significantly higher therefore confirming the increased number of applications for higher tuition fees. However overall for prestigious universities also, the number of applications is higher for lower tuition fees as in the case of all universities.** What is surprising is the reverse being true for religious or diversity affiliation universities. In case for religious or diversity affiliation universities, higher number of applications are seen for universities with high tuition fees. To identify the reason for this religious and diversity affiliation university are analysed separately. 
+
+```{r Tuition fees vs app trends}
+theme_set(theme_ben())
+apps<-summary(ipeds$Applicants.total)
+tuition<-summary(ipeds$Tuition.and.fees..2013.14)
+mean_apps<-apps[4]
+med_apps<-apps[3]
+mean_tuition<-tuition[4]
+med_tuition<-tuition[3]
+
+
+p1<-ggplot(aes(x=Tuition.and.fees..2013.14, y=Applicants.total),data=subset(ipeds, !is.na(Applicants.total)))+geom_point(alpha=0.3,color="salmon2",shape=20,size=3)+ ggtitle(" All Universities")+theme(plot.title = element_text(hjust = 0.5))+ xlab("Tuition Fees")+ylab("Number of Applications")+geom_vline(xintercept=med_tuition, color = "red")+geom_hline(yintercept=med_apps, color = "red")+ylim(0,70000)+geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F)
+
+
+data_div<-subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable")
+
+apps_div<-summary(data_div$Applicants.total)
+tuition_div<-summary(data_div$Tuition.and.fees..2013.14)
+mean_apps_div<-apps_div[4]
+med_apps_div<-apps_div[3]
+mean_tuition_div<-tuition_div[4]
+med_tuition_div<-tuition_div[3]
+
+p2<-ggplot(aes(x=Tuition.and.fees..2013.14, y=Applicants.total),data=subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable"))+geom_point(color="salmon2",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ xlab("Tuition Fees")+ylab("Number of Applications")+ ggtitle(" Religious or diversity affiliation")+geom_vline(xintercept=med_tuition_div, color = "red")+geom_hline(yintercept=med_apps_div, color = "red")+ylim(0,70000)+geom_smooth(formula = y ~ x, method = "loess",se=F)
+
+sat_score<-(ipeds$SAT.Critical.Reading.75th.percentile.score+ipeds$SAT.Math.75th.percentile.score+ipeds$SAT.Writing.75th.percentile.score)
+
+data_pre<-subset(ipeds, sat_score >=2000)
+apps_pre<-summary(data_pre$Applicants.total)
+tuition_pre<-summary(data_pre$Tuition.and.fees..2013.14)
+mean_apps_pre<-apps_pre[4]
+med_apps_pre<-apps_pre[3]
+mean_tuition_pre<-tuition_pre[4]
+med_tuition_pre<-tuition_pre[3]
+
+p3<-ggplot(aes(x=Tuition.and.fees..2013.14, y=Applicants.total),data=data_pre)+geom_point(color="salmon2",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ xlab("Tuition Fees")+ylab("Number of Applications")+theme(plot.title = element_text(hjust = 0.5))+ggtitle(" Prestigious Universities")+geom_vline(xintercept=med_tuition_pre, color = "red")+geom_hline(yintercept=med_apps_pre, color = "red")+ylim(0,70000)+geom_smooth(formula = y ~ x, method = "loess",se=F)
+
+combined1<-p1+p2+p3
+combined1+ plot_annotation('Tuition Fees vs Number of Applications Trends',theme=theme(plot.title=element_text(face="bold",hjust=0.5)))
+
+```
+
+
+It can be seen that **this trend only exists for Religious affiliated universities.** Because information on scholarships or particular financial aid is not present the reason behind this trend is inconclusive. Whether similar trend exists in case of enrollment trend is analysed next.
+```{r Tuition fees vs app trends religious and div}
+theme_set(theme_ben())
+data_rel<-subset(ipeds, ipeds$Religious.affiliation!="Not applicable" & !is.na(ipeds$Religious.affiliation) )
+
+apps_rel<-summary(data_rel$Applicants.total)
+tuition_rel<-summary(data_rel$Tuition.and.fees..2013.14)
+mean_apps_rel<-apps_rel[4]
+med_apps_rel<-apps_div[3]
+mean_tuition_rel<-tuition_rel[4]
+med_tuition_rel<-tuition_rel[3]
+
+
+p1<-ggplot(aes(x=Tuition.and.fees..2013.14, y=Applicants.total),data=data_rel)+geom_point(color="salmon2",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ xlab("Tuition Fees")+ylab("Number of Applications")+ ggtitle(" Religious affiliation")+geom_vline(xintercept=med_tuition_rel, color = "red")+geom_hline(yintercept=med_apps_rel, color = "red")+ylim(0,70000)+geom_smooth(formula = y ~ x, method = "loess",se=F)
+
+
+data_div<-subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes")
+
+apps_div<-summary(data_div$Applicants.total)
+tuition_div<-summary(data_div$Tuition.and.fees..2013.14)
+mean_apps_div<-apps_div[4]
+med_apps_div<-apps_div[3]
+mean_tuition_div<-tuition_div[4]
+med_tuition_div<-tuition_div[3]
+
+p2<-ggplot(aes(x=Tuition.and.fees..2013.14, y=Applicants.total),data=data_div)+geom_point(color="salmon2",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ xlab("Tuition Fees")+ylab("Number of Applications")+ ggtitle(" Diversity affiliation")+geom_vline(xintercept=med_tuition_div, color = "red")+geom_hline(yintercept=med_apps_div, color = "red")+ylim(0,70000)+geom_smooth(formula = y ~ x, method = "loess",se=F)
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+
+A plot of the enrollment rate and tuition fees shows, a slight dip in enrollment rate as tuition fees increases. This hints that **students prefer and enroll  into universities that have a lower tuition fees**. **Beyond the 40000 mark there is an increase in enrollment rate this may be due to the fact that many prestigious universities, which are typically more expensive, have a high enrollment rate despite their low acceptance rate, which was seen previously**. Again to confirm this trend the different universities are analysed.
+
+```{r Tuition fee vs enrollment rate}
+theme_set(theme_ben())
+# suppress the warnings by setting warn=-1
+options(warn=-1)
+library(ggplot2)
+
+ggplot(aes(x=Tuition.and.fees..2013.14, y=enrollment_rate*100),data=ipeds)+geom_point(color="slateblue3",alpha=1/2,shape=20,size=3)+xlab("Tuition Fees ")+ylab("Enrollment Rate")+ ggtitle(" Enrollment Rate vs Tuition Fees")+theme(plot.title = element_text(hjust = 0.5))+geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F,col="red")
+
+```
+
+The enrollment rate for prestigious universities is higher than general trend however, the enrollment rate is similar across the tuition fees in case of prestigious universities. **Therefore, in case of prestigious universities students enroll regardeless of tuition fees.In more general trends, which can be seen in case of all universities and religious or diversity affiliation universities, the enrollment rate is higher for lower tuition fees.**
+```{r Tuition fees vs enrollment trends}
+theme_set(theme_ben())
+enrol<-summary(ipeds$enrollment_rate)
+tuition<-summary(ipeds$Tuition.and.fees..2013.14)
+
+mean_enroll<-enrol[4]*100
+med_enroll<-enrol[3]*100
+mean_tuition<-tuition[4]
+med_tuition<-tuition[3]
+
+p1<-ggplot(aes(x=Tuition.and.fees..2013.14,y=enrollment_rate*100),data=subset(ipeds, !is.na(Admissions.total), !is.na(enrollment_rate)))+geom_point(alpha=0.3,color="slateblue3",shape=20,size=3)+ ggtitle(" All Universities")+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Tuition Fees")+geom_vline(xintercept=med_tuition, color = "red")+geom_hline(yintercept=med_enroll, color = "red")+geom_smooth(formula = y ~ s(x, bs = "cs"), method = "gam",se=F,col="red")
+
+
+data_div<-subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable")
+enrol_div<-summary(data_div$enrollment_rate)
+tuition_div<-summary(data_div$Tuition.and.fees..2013.14)
+mean_enroll_div<-enrol_div[4]*100
+med_enroll_div<-enrol_div[3]*100
+mean_tuition_div<-tuition_div[4]
+med_tuition_div<-tuition_div[3]
+
+p2<-ggplot(aes(x=Tuition.and.fees..2013.14,y=enrollment_rate*100),data=subset(ipeds, ipeds$Historically.Black.College.or.University=="Yes"| ipeds$Religious.affiliation!="Not applicable"))+geom_point(color="slateblue3",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Tuition Fees")+geom_vline(xintercept=med_tuition_div, color = "red")+geom_hline(yintercept=med_enroll_div, color = "red")+geom_smooth(formula = y ~ x, method = "loess",se=F,col="red")+ ggtitle(" Religious or diversity affiliation")
+
+sat_score<-(ipeds$SAT.Critical.Reading.75th.percentile.score+ipeds$SAT.Math.75th.percentile.score+ipeds$SAT.Writing.75th.percentile.score)
+
+data_pre<-subset(ipeds, sat_score >=2000)
+enrol_pre<-summary(data_pre$enrollment_rate)
+tuition_pre<-summary(data_pre$Tuition.and.fees..2013.14)
+mean_enroll_pre<-enrol_pre[4]*100
+med_enroll_pre<-enrol_pre[3]*100
+mean_tuition_pre<-tuition_pre[4]
+med_tuition_pre<-tuition_pre[3]
+
+p3<-ggplot(aes(x=Tuition.and.fees..2013.14,y=enrollment_rate*100),data=data_pre)+geom_point(color="slateblue3",alpha=0.3,shape=20,size=3)+theme(plot.title = element_text(hjust = 0.5))+ ylab("Enrollment Rate (%)")+xlab("Tuition Fees")+geom_vline(xintercept=med_tuition_pre, color = "red")+geom_hline(yintercept=med_enroll_pre, color = "red")+geom_smooth(formula = y ~ x, method = "loess",se=F,col="red")+ggtitle(" Prestigious Universities")
+
+combined1<-p1+p2+p3
+combined1+ plot_annotation('Enrollment Rate vs Tuition Fees Trends',theme=theme(plot.title=element_text(face="bold",hjust=0.5)))
+
+
+```
+
+
+To summarize the tuition fees analysis, the tuition fees is broken into ranges and summarized below. Therefore in summary, **while applying to university tuition fees has limited influence however, while enrolling, enrollment rate is higher for universities with lower tuition fees.**
+```{r Tuition fee vs apps  vs enrollment box plot}
+theme_set(theme_ben())
+# Create a data frame
+data <- data.frame(Tuition_Fee=subset(ipeds,!is.na(ipeds$Tuition.and.fees..2013.14) & !is.na(ipeds$Applicants.total))$Tuition.and.fees..2013.14, Applications=subset(ipeds,!is.na(ipeds$Tuition.and.fees..2013.14) & !is.na(ipeds$Applicants.total))$Applicants.total, Enrol_rate=round(subset(ipeds,!is.na(ipeds$Tuition.and.fees..2013.14) & !is.na(ipeds$enrollment_rate))$enrollment_rate*100,2))
+
+# Define tuition fee ranges
+fee_ranges <- cut(data$Tuition_Fee, breaks = c(0, 10000, 20000, 30000, 40000,50000))
+
+# Summarize the number of applications in each range
+summary_data1<-data.frame(data$Applications, fee_ranges)
+p1<-ggplot(summary_data1, aes(x=fee_ranges, y=data$Applications)) + 
+    geom_boxplot(notch=TRUE,fill="salmon2")+geom_point(stat = "summary", fun = "median", color = "blue", size = 3) +
+  geom_line(stat = "summary", fun = "median", aes(group = 1), color = "blue", size = 1) +ylim(0,40000)+ylab("Total Applications")+xlab("Tuition Fees Range")+ggtitle("Total Applications vs Tuition Fees Range")+theme(axis.text.x = element_text(angle=90))
+
+
+# Create a data frame
+data <- data.frame(Tuition_Fee=subset(ipeds,!is.na(ipeds$Tuition.and.fees..2013.14) & !is.na(ipeds$Applicants.total))$Tuition.and.fees..2013.14, Applications=subset(ipeds,!is.na(ipeds$Tuition.and.fees..2013.14) & !is.na(ipeds$Applicants.total))$Applicants.total, Enrol_rate=round(subset(ipeds,!is.na(ipeds$Tuition.and.fees..2013.14) & !is.na(ipeds$enrollment_rate))$enrollment_rate*100,2))
+
+# Define tuition fee ranges
+fee_ranges <- cut(data$Tuition_Fee, breaks = c(0, 10000, 20000, 30000, 40000,50000))
+
+
+# Summarize the number of applications in each range
+summary_data2<-data.frame(data$Enrol_rate, fee_ranges)
+
+p2<-ggplot(summary_data1, aes(x=fee_ranges, y=data$Enrol_rate)) + 
+    geom_boxplot(notch=TRUE,fill="slateblue3")+geom_point(stat = "summary", fun = "median", color = "red2", size = 3) +
+  geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1) +ylab("Enrollment Rate(%)")+xlab("Tuition Fees Range")+ggtitle("Enrollment Rate vs Tuition Fees Range") +theme(axis.text.x = element_text(angle=90))
+
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+
+
+### Public or Private Control of Institution
+
+Control of Institution mainly depends on who funds the university itself. Public Universities are mainly funded by state governments. Private universities on the other hand rely on student tuition fees, endowments etc to fund their program. Therefore, overall trends for public and private universities are plotted. 
+
+**It can be seen from the plot below that most students apply and enroll in public universities rather than private not for profit.** Exploring why this is the case in the next section.
+```{r Application vs enrollment rate for public vs private}
+control_colours<- c("red3","blue4")
+theme_set(theme_ben())
+Control_df<- data.frame(grp=ipeds$Control.of.institution,value=ipeds$Applicants.total)
+# one box per variety
+p1<-ggplot(Control_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) + scale_fill_manual(values=control_colours)+xlab("Control of Institution")+ylab("Number of Applications")+ theme(legend.position = "none")+ylim(0,20000)+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "yellow", size = 1) 
+
+
+Control_df<- data.frame(grp=ipeds$Control.of.institution,value=ipeds$enrollment_rate)
+p2<-ggplot(Control_df, aes(x=grp, y=value*100, fill=grp)) + 
+    geom_boxplot(notch=TRUE) + scale_fill_manual(values=control_colours)+xlab("Control of Institution")+ylab("Enrollment Rate(%)")+ theme(legend.position = "none")+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "yellow", size = 1) 
+
+library(patchwork)
+combined <- p1+p2 
+combined + plot_layout(guides = "collect")+ plot_annotation('Application and Enrollment trends for public and private university ',theme=theme(plot.title=element_text(hjust=0.5)))
+```
+
+
+#### Why are public universities more preferred by students compared to private univerities?
+To analyse why public universities are more preferred by students over private universities, the tuition fees, On campus living costs and % receiving financial aid is compared. It was confirmed in previous section that while applying to university tuition fees may not be that influential however while enrolling, students prefer lower tuition fees university. Furthermore, factors that could lead to variation in the characteristics of these universities such as campus living costs, financial aid etc are also analysed in addition to tuition fees.
+
+
+```{r why are public universities more preffered cost comparison}
+theme_set(theme_ben())
+#Grouping by Control_Tuition
+Control_Tuition_df<- data.frame(grp=ipeds$Control.of.institution,value=ipeds$Tuition.and.fees..2013.14)
+
+p1<-ggplot(Control_Tuition_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) +ylab("Tuition fees 2013-2014")+ theme(legend.position = "none")+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "yellow", size = 1) +xlab("Control of Institution")+ scale_fill_manual(values=control_colours)
+
+#Grouping by Campus_cost_Control
+#instate
+New_df<- data.frame(grp=ipeds$Control.of.institution,value=ipeds$Total.price.for.in.state.students.living.on.campus.2013.14)
+# one box per variety
+p2<-ggplot(New_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) +geom_line(stat = "summary", fun = "median", aes(group = 1), color = "yellow", size = 1) + theme(legend.position = "none")+xlab("Control of Institution")+ylab("On Campus cost (In state)")+scale_fill_manual(values=control_colours)
+
+#instate
+New_df<- data.frame(grp=ipeds$Control.of.institution,value=ipeds$Total.price.for.out.of.state.students.living.on.campus.2013.14)
+# one box per variety
+p3<-ggplot(New_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) +geom_line(stat = "summary", fun = "median", aes(group = 1), color = "yellow", size = 1) + theme(legend.position = "none")+xlab("Control of Institution")+ylab("On Campus cost (Out state)")+scale_fill_manual(values=control_colours)
+ 
+#Grouping by Control_Financial_aid
+Control_aid_df<- data.frame(grp=ipeds$Control.of.institution,value=ipeds$Percent.of.freshmen.receiving.any.financial.aid)
+p4<-ggplot(Control_aid_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) + scale_fill_manual(values=control_colours)+ylab("% receiving financial aid")+ theme(legend.position = "none")+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "yellow", size = 1) +xlab("Control of Institution")
+
+
+library(patchwork)
+combined <- (p2 + p3)/(p1+p4) 
+combined + plot_layout(guides = "collect")+ plot_annotation('Financial trends and Control of Institution ',theme=theme(plot.title=element_text(hjust=0.5)))
+```
+
+
+Starting with the on campus living costs: <br>
+**1. The on campus living costs for for public universities are significantly lower than private universities for both in and out-state students. **<br>
+**2. Looking at only Private universities: the on campus living for both in state and out of state students are similar.**<br>
+**3. Looking at only public universities: the cost for in state students is relatively lower than that for out of state.**<br>
+
+Next is the tuition fees: **The tuition fees of public and private universities. On average, private universities are more than 3 times more expensive than private universities.** 
+
+Percentage of students availing Financial Aid: **The percentage of students availing financial aid is slightly lower for public universities compared to private. A reason for this could be the relatively lower tuition fees and campus living costs.**
+
+These may be the reason why students prefer public universities over private universities. A combination of low tuition fees and low on campus living costs of public universities is what makes Public universities favorable. This is summed up in the plot below. The cluster of public universities are towards the lower end while the private universities are towards the higher costs ends.
+```{r tuition vs campus cost, warning=FALSE,, out.width = '90%'}
+
+theme_set(theme_ben())
+## Tuition Fees vs Campus Cost
+p1<-ggplot(aes(x=Total.price.for.in.state.students.living.on.campus.2013.14,y=Tuition.and.fees..2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=1/2,shape=20,size=3)+ylab("Tuition fees 2013-14")+xlab("On Campus cost (In state)")+ theme(legend.position="none")+
+   scale_color_manual(values=c('red','blue'))
+
+
+p2<-ggplot(aes(x=Total.price.for.out.of.state.students.living.on.campus.2013.14,y=Tuition.and.fees..2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=1/2,shape=20,size=3)+ylab("Tuition fees 2013-14")+xlab("On Campus cost (Out state)")+ theme(legend.position="none")+scale_color_manual(values=c('red','blue'))
+
+
+library(patchwork)
+combined <- p1 + p2 & theme(legend.position = "bottom")
+combined + plot_layout(guides = "collect")+ plot_annotation('Tuition Fees vs Campus Cost ',theme=theme(plot.title=element_text(hjust=0.5)))
+
+```
+
+A comparison of the application and enrollment trends based on on campus costs and tuition fees for public and private universities is shown below. The plots for application and enrollment are almost reversed. **While applying to universities, the tuition fees or on campus costs do not influence the students decision much.** A reason for the high applications for higher costs can be attributed to the university itself as seen in the previous sections that prestigious universities see a higher applications despite higher tuition fees. **Enrollment rate is a better indication of student preference. What can be seen is the steep decrease in enrollment rate as the tuition and on campus costs increase. This is the case for both private and public universities.  Therefore it can be confirmed that enrollment rate depends on financial considerations such as Tuition fees and campus living costs. The increase in enrollment rate towards the higher costs end is attributed to prestigious universities as seen in previous sections. ** 
+
+
+```{r number of applications vs campus cost, warning=FALSE}
+# suppress the warnings by setting warn=-1
+options(warn=-1)
+theme_set(theme_ben())
+p1<-ggplot(aes(y=Applicants.total,x=Tuition.and.fees..2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=0.1,shape=20,size=3)+ylab("Total Applications")+xlab("Tuition fees 2013-14")+ theme(legend.position="none") +scale_x_continuous(breaks=seq(0,50000,10000))+geom_smooth(method = 'loess',formula = y ~ x,se=F)+
+   scale_color_manual(values=c('red','blue'))
+
+
+p2<-ggplot(aes(y=Applicants.total,x=Total.price.for.in.state.students.living.on.campus.2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=0.1,shape=20,size=3)+ylab("Total Applications")+xlab("On Campus cost (In state)")+ theme(legend.position="none")+geom_smooth(method = 'loess',formula = y ~ x,se=F)+
+   scale_color_manual(values=c('red','blue'))
+
+
+
+p3<-ggplot(aes(y=Applicants.total,x=Total.price.for.out.of.state.students.living.on.campus.2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=0.1,shape=20,size=3)+ylab("Total Applications")+xlab("On Campus cost (Out state)")+scale_x_continuous(breaks=seq(0,60000,20000))+geom_smooth(method = 'loess',formula = y ~ x,se=F)+
+   scale_color_manual(values=c('red','blue'))+ theme(legend.position="none")
+
+
+
+library(patchwork)
+combined1 <- p1 + p2+p3 
+combined1<-combined1 + plot_layout(guides = "collect")
+
+
+p4<-ggplot(aes(y=enrollment_rate*100,x=Tuition.and.fees..2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=0.1,shape=20,size=3)+ylab("Enrollment Rate(%)")+xlab("Tuition fees 2013-14")+ theme(legend.position="none") +scale_x_continuous(breaks=seq(0,50000,10000))+geom_smooth(method = 'loess',formula = y ~ x,se=F)+
+   scale_color_manual(values=c('red','blue'))
+
+
+p5<-ggplot(aes(y=enrollment_rate*100,x=Total.price.for.in.state.students.living.on.campus.2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=0.1,shape=20,size=3)+ylab("Enrollment Rate(%)")+xlab("On Campus cost (In state)")+ theme(legend.position="none")+geom_smooth(method = 'loess',formula = y ~ x,se=F)+
+   scale_color_manual(values=c('red','blue'))
+
+
+
+p6<-ggplot(aes(y=enrollment_rate*100,x=Total.price.for.out.of.state.students.living.on.campus.2013.14, color=Control.of.institution), data=ipeds)+geom_point(alpha=0.1,shape=20,size=3)+ylab("Enrollment Rate(%)")+xlab("On Campus cost (Out state)")+scale_x_continuous(breaks=seq(0,60000,20000))+geom_smooth(method = 'loess',formula = y ~ x,se=F)+
+   scale_color_manual(values=c('red','blue'))+ theme(legend.position="none")
+
+
+
+library(patchwork)
+combined2 <- p4 + p5+p6 & theme(legend.position = "bottom")
+combined2<-combined2 + plot_layout(guides = "collect")
+
+combined3<-combined1/combined2
+combined3+ plot_annotation('Total Applications and Enrollment rate vs Cost trends for Public and Private Universities ',theme=theme(plot.title=element_text(hjust=0.5)))
+
+```
+
+
+**Therefore, students apply and enroll in public universities. The reason for this is attributed to the lower tuition fees and on campus living costs of public universities.  **
+
+## Location and Urbanization
+
+### Location
+
+**Next is the location: Does the university location influence number of applications and enrollments ?** The dataset considers the location as: Far,Great, Mid, New, Plains, Rocky, Southeast and Southwest. Most Universities considered in this data set are in the East Coast and Central United States , which are Southeast, Far, Great,Mid Plains and New. Again the median values are considered. 
+```{r Map view total}
+library(tidyverse)
+library(sf)
+library(mapview)
+library(ggplot2)
+theme_set(theme_ben())
+mapview(ipeds, xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Geographic", popup = ipeds$Name)
+
+```
+
+Analyzing both the number of applications and enrollment rates geography wise below. What is confirmed once again is that the median number of applications are fairly similar for all the locations. This confirms that while applying to university the primary factor remains the university status rather than the secondary factors like cost, location, highest degree offered. Enrollment rates are slightly higher for the locations - Plains, Rocky, Southeast and Southwest. This is attributed to the significantly low tuition and on campus costs. Again confirming that the cost parameters influence the enrollment trends. 
+
+```{r Grouping location}
+options(warn=-1)
+theme_set(theme_ben())
+#grouping by location
+ipeds.Location <- ipeds %>% 
+  filter(!is.na(Applicants.total)) %>%
+  group_by(Geographic) %>%
+    summarise(n=n())
+
+library("RColorBrewer")
+colors<-c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#4AC16DFF","#97DA3AFF","#FDE725FF")
+
+p1<-ggplot(ipeds.Location) + geom_col(aes(Geographic,n),fill=colors)+xlab("Geographic Location") +ylab("Count")+ggtitle("Total Universities")+theme(axis.text.x = element_text(angle=90))
+
+p2<-qplot(x=Geographic,y=Applicants.total,
+data=ipeds, geom='boxplot',fill = Geographic, notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Geographic Location") +ylab("Total Applications")+ggtitle("Total Applications")+theme(legend.position="none")+ylim(0,30000)+theme(axis.text.x = element_text(angle=90))
+
+p3<-qplot(x=Geographic,y=enrollment_rate*100,
+data=ipeds, geom='boxplot',fill = Geographic, notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Geographic Location") +ylab("Enrollment Rate (%)")+ggtitle(" Enrollment Rate")+theme(legend.position="none")+theme(axis.text.x = element_text(angle=90))
+
+
+p4<-qplot(x=Geographic,y=Tuition.and.fees..2013.14,
+data=ipeds, geom='boxplot',fill = Geographic, notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Geographic Location") +ylab(" Tuition Fees")+ggtitle("Tuition Fees")+theme(legend.position="none")+theme(axis.text.x = element_text(angle=90))
+
+
+p5<-qplot(x=Geographic,y=Total.price.for.in.state.students.living.on.campus.2013.14,
+data=subset(ipeds,!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)& !is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)), geom='boxplot',fill = Geographic, notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Geographic Location") +ylab(" In-State Campus Cost")+ggtitle("On Campus Cost (In state")+theme(legend.position="none")+theme(axis.text.x = element_text(angle=90))
+
+p6<-qplot(x=Geographic,y=Total.price.for.in.state.students.living.on.campus.2013.14,
+data=subset(ipeds,!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)& !is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)), geom='boxplot',fill = Geographic, notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Geographic Location") +ylab(" Out-State Campus Cost")+ggtitle("Campus Cost (Out state) ")+theme(legend.position="none")+theme(axis.text.x = element_text(angle=90))
+
+
+library(patchwork)
+combined1<-(p1+p2+p3)/(p4+p5+p6)
+combined1+ plot_annotation('Geographic Location Trends ',theme=theme(plot.title=element_text(hjust=0.5)))
+
+
+```
+
+
+##### Enrollment or Enrollment Rate ? 
+In the previous sections, enrollment rate was a better indication to compare the different cases. However in this case instead of enrollment rate, the number of total enrollments is a better indication of which location the students prefer. This is because enrollment rate accounts for the number of admissions offered. However, when looking at the location impact specifically, a higher enrollment rate might not mean a preference for that location, but may mean that the universities in that location saw higher enrollment rates due to it being religiously or diversity affiliated or a small scale university or state college. Therefore, comparing total enrollment and enrollment rate:
+
+```{r enrollment vs enrollment rate location}
+theme_set(theme_ben())
+p3<-qplot(x=Geographic,y=enrollment_rate*100,
+data=ipeds, geom='boxplot',fill = Geographic, notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Geographic Location") +ylab("Enrollment Rate (%)")+ggtitle(" Enrollment Rate")+theme(legend.position="none")
+p7<-qplot(x=Geographic,y=Enrolled.total,
+data=ipeds, geom='boxplot',fill = Geographic, notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Geographic Location") +ylab("Enrollment ")+ggtitle(" Enrollment")+theme(legend.position="none")+ylim(0,4000)
+combined1<-p7+p3
+combined1+ plot_annotation('Geographic Location Trends ',theme=theme(plot.title=element_text(hjust=0.5)))
+
+```
+
+A good example of this comparison is the case of plains - from the enrollment plot it may be deduced that the students prefer plains location due to the high enrollment rate, however a look at the total enrolled shows that plains has the lowest number of enrollments. The reason for this high enrollment rate lies in the generally low total number of applications and and relatively high acceptance rates of the university located in the plains as seen in the table. Therefore, considering these factors it can be concluded that the high enrollment rate for universities located in plains has more to do with the university itself rather than the location.Similarly looking at location far for instance, which has relatively high total enrollments compared to plains, but lower enrollment rate.The same trend is noticed in case of far - high enrollment rate are typically for universities that have low number of applications and high acceptance rates with the exception of Stanford University which is considered an Ivy League school. 
+
+
+```{r plains}
+theme_set(theme_ben())
+plains<-subset(ipeds, ipeds$Geographic=="Plains"&!is.na(Enrolled.total))
+x<-data.frame(plains$Name,plains$Religious.affiliation,plains$Historically.Black.College.or.University, plains$Applicants.total, plains$Admissions.total, plains$acceptance_rate,plains$Enrolled.total, plains$enrollment_rate)
+
+high_enrol_rate_plains<-subset(x,x$plains.enrollment_rate>=0.5)
+
+summary(plains$enrollment_rate)
+summary(plains$Applicants.total)
+summary(plains$acceptance_rate)
+summary(plains$Enrolled.total)
+
+```
+
+```{r far}
+theme_set(theme_ben())
+far<-subset(ipeds, ipeds$Geographic=="Far"&!is.na(Enrolled.total))
+x<-data.frame(far$Name,far$Religious.affiliation,far$Historically.Black.College.or.University, far$Applicants.total, far$Admissions.total, far$acceptance_rate,far$Enrolled.total, far$enrollment_rate)
+
+
+#high_accp_far<-subset(x,x$far.acceptance_rate>=0.5)
+#high_accp_far
+
+high_enrol_rate_far<-subset(x,x$far.enrollment_rate>=0.5)
+
+
+#high_apps_far<-subset(x,x$far.Applicants.total<10000)
+#high_apps_far
+summary(far$enrollment_rate)
+summary(far$Applicants.total)
+summary(far$acceptance_rate)
+summary(far$Enrolled.total)
+```
+
+
+**Therefore, the trend of enrollment rate and applications depends more on the university rather than the location. Another parameter to analyse influence of location is performed by considering the degree of urbanization. The level of urbanization is fairly spread out and is not geography centric.**
+
+### Degree of Urbanization
+```{r Map view urban apps}
+theme_set(theme_ben())
+library(tidyverse)
+library(sf)
+library(mapview)
+
+library(ggplot2)
+mapview( ipeds,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Degree.of.urbanization..Urban.centric.locale.",col.regions=c("darkorchid3","cadetblue3","brown3","goldenrod1"))
+```
+
+As seen from below, most universities considered in the current dataset are located in cities. In terms of number of applications, universities located in cities see a slightly higher number of applications compared to suburbs or town. Enrollment rate is slightly higher for universities in the rural and town location, which can be attributed to the relatively lower tuition fees. But as in the previous case, a high enrollment rate doesn't specifically imply a preference for that location. Therefore, total enrollment and enrollment rate for different degree of urbanization is compared. 
+```{r Grouping urbanization }
+theme_set(theme_ben())
+#grouping by location
+ipeds.Urban <- ipeds %>% 
+  filter(!is.na(Applicants.total)) %>%
+  group_by(Degree.of.urbanization..Urban.centric.locale.) %>%
+  summarise(n=n(),mean_acceptance=mean(acceptance_rate)*100, mean_apps=mean(Applicants.total))
+ipeds.Urban
+
+colors<-c("darkorchid3","cadetblue3","brown3","goldenrod1")
+
+p1<-ggplot(ipeds.Urban) +geom_col(aes(Degree.of.urbanization..Urban.centric.locale., n), fill=colors)+xlab("Degree of urbanization") +ylab("Number of Universities")+ggtitle("Number of Universities vs Degree of urbanization")
+
+p2<-qplot(x=Degree.of.urbanization..Urban.centric.locale.,y=Applicants.total,
+data=ipeds, geom='boxplot',fill = Degree.of.urbanization..Urban.centric.locale., notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Degree of urbanization") +ylab("Total Applications")+ggtitle("Total Applications")+theme(legend.position="none")+ylim(0,30000)
+
+p3<-qplot(x=Degree.of.urbanization..Urban.centric.locale.,y=enrollment_rate*100,
+data=ipeds, geom='boxplot',fill = Degree.of.urbanization..Urban.centric.locale., notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Degree of urbanization") +ylab("Enrollment Rate (%)")+ggtitle(" Enrollment Rate")+theme(legend.position="none")
+
+p4<-qplot(x=Degree.of.urbanization..Urban.centric.locale.,y=Tuition.and.fees..2013.14,
+data=ipeds, geom='boxplot',fill = Degree.of.urbanization..Urban.centric.locale., notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Degree of urbanization") +ylab(" Tuition Fees")+ggtitle("Tuition Fees")+theme(legend.position="none")
+
+
+p5<-qplot(x=Degree.of.urbanization..Urban.centric.locale.,y=Total.price.for.in.state.students.living.on.campus.2013.14,
+data=subset(ipeds,!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)& !is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)), geom='boxplot',fill = Degree.of.urbanization..Urban.centric.locale., notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Degree of urbanization") +ylab(" On Campus Cost (In state)")+ggtitle("On Campus (In state)")+theme(legend.position="none")
+
+p6<-qplot(x=Degree.of.urbanization..Urban.centric.locale.,y=Total.price.for.in.state.students.living.on.campus.2013.14,
+data=subset(ipeds,!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)& !is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)), geom='boxplot',fill = Degree.of.urbanization..Urban.centric.locale., notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Degree of urbanization") +ylab(" On Campus Cost (Out state)")+ggtitle("Campus Cost (Out state) ")+theme(legend.position="none")
+
+
+
+library(patchwork)
+
+combined1<-(p1+p2+p3)/(p4+p5+p6)
+combined1+ plot_annotation('Degree of urbanization Trends ',theme=theme(plot.title=element_text(hjust=0.5)))
+
+
+```
+
+
+The importance of comparing correct parameters is visualized in the plot below. Despite having slightly higher enrollment rate in case of rural regions, the number of enrollments is significantly low. Therefore, considering enrollment numbers as a parameter is better for location comparison rather than comparing the enrollment rates. In case of degree of urbanization, students prefer cities as cities saw the highest number of enrollments. However, it is important to keep in mind that the reason for this may have to do with the fact that most universities are located in cities rather than preference for city itself. 
+```{r enrollment vs enrollment rate urbanization}
+theme_set(theme_ben())
+colors<-c("darkorchid3","cadetblue3","brown3","goldenrod1")
+
+p3<-qplot(x=Degree.of.urbanization..Urban.centric.locale.,y=enrollment_rate*100,
+data=ipeds, geom='boxplot',fill = Degree.of.urbanization..Urban.centric.locale., notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Degree of urbanization") +ylab("Enrollment Rate (%)")+ggtitle(" Enrollment Rate")+theme(legend.position="none")
+p7<-qplot(x=Degree.of.urbanization..Urban.centric.locale.,y=Enrolled.total,
+data=ipeds, geom='boxplot',fill = Degree.of.urbanization..Urban.centric.locale., notch = TRUE)+   scale_fill_manual(values=colors)+xlab("Degree of urbanization") +ylab("Enrollment")+ggtitle(" Enrollment ")+theme(legend.position="none")+ylim(0,5000)
+combined1<-p7+p3
+combined1+ plot_annotation('Degree of urbanization Trends ',theme=theme(plot.title=element_text(hjust=0.5)))
+
+```
+
+**Therefore, whether location has a direct influence on student preference is unclear. However, a combined plot of both geographic and degree of urbanization is presented below to assert whether location or degree of urbanization has more influence.**
+
+**Performing similar analysis as above and comparing number of applications, enrollment rate and total enrollments for location and degree of urbanization combined. What can be seen from the plot below is that the degree of urbanization influences decision more than the specific location. This can be seen from the significantly different trends for different urbanization but fairly similar trends for geographic locations.**
+```{r LOCATION AND URBANIZATION COMBINED}
+theme_set(theme_ben())
+ipeds.count <- ipeds %>% 
+  filter(!is.na(Applicants.total)) %>%
+  group_by(Degree.of.urbanization..Urban.centric.locale.,Geographic) %>%
+  summarize(n=n())
+New_df<-data.frame(grp=ipeds.count$Geographic,subgroup=ipeds.count$Degree.of.urbanization..Urban.centric.locale.,value=ipeds.count$n)
+colors<-c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#4AC16DFF","#97DA3AFF","#FDE725FF")
+ggplot(New_df, aes(x=grp, y=value, fill=grp)) +geom_bar(stat="identity")+ facet_wrap(~subgroup, scale="free") +scale_fill_manual(values=colors)+theme(legend.position="none")+ylab("Count")+xlab("Geographic Location")+theme(axis.text.x = element_text(angle=90))
+```
+
+
+```{r LOCATION AND URBANIZATION COMBINED APPS}
+theme_set(theme_ben())
+colors<-c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#4AC16DFF","#97DA3AFF","#FDE725FF")
+New_df<- data.frame(grp=ipeds$Geographic,subgroup=ipeds$Degree.of.urbanization..Urban.centric.locale.,value=ipeds$Applicants.total)
+# one box per variety
+ggplot(New_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) +
+    facet_wrap(~subgroup, scale="free") +scale_fill_manual(values=colors)+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1) +ylab("Total Applications")+xlab("Geographic Location")+theme(legend.position="none")+ylim(0,60000)+theme(axis.text.x = element_text(angle=90))
+
+
+```
+
+```{r LOCATION AND URBANIZATION COMBINED ENROL}
+theme_set(theme_ben())
+colors<-c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#4AC16DFF","#97DA3AFF","#FDE725FF")
+New_df<- data.frame(grp=ipeds$Geographic,subgroup=ipeds$Degree.of.urbanization..Urban.centric.locale.,value=ipeds$enrollment_rate)
+# one box per variety
+ggplot(New_df, aes(x=grp, y=value*100, fill=grp)) + 
+    geom_boxplot(notch=TRUE) +
+    facet_wrap(~subgroup, scale="free") +scale_fill_manual(values=colors)+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1) +ylab("Enrollment Rate")+xlab("Geographic Location")+theme(legend.position="none")+theme(axis.text.x = element_text(angle=90))
+
+
+```
+
+```{r LOCATION AND URBANIZATION COMBINED ENROLLED TOTAL}
+theme_set(theme_ben())
+colors<-c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#4AC16DFF","#97DA3AFF","#FDE725FF")
+New_df<- data.frame(grp=ipeds$Geographic,subgroup=ipeds$Degree.of.urbanization..Urban.centric.locale.,value=ipeds$Enrolled.total)
+# one box per variety
+ggplot(New_df, aes(x=grp, y=value, fill=grp)) + 
+    geom_boxplot(notch=TRUE) +
+    facet_wrap(~subgroup, scale="free") +scale_fill_manual(values=colors)+geom_line(stat = "summary", fun = "median", aes(group = 1), color = "red2", size = 1) +ylab("Enrollment ")+xlab("Geographic Location")+theme(legend.position="none")+ylim(0,5000)+theme(axis.text.x = element_text(angle=90))
+
+
+```
+
+## Demographics and Diversity
+Another aspect that is analysed is the demographics and diversity. The current dataset includes data regarding the diversity and demographic when it comes to total enrollments. **Does a diverse student environment prompt more applications and enrollments ?** A summary of the trend of diversity and demography and % of total enrollments is present below. Typical universities in the dataset have a majority white and female student population. The diversity of each diverse race is well below 25%.  What can be seen is that prestigious Universities are more diverse. 
+
+```{r demography and diversity summary}
+sat_score<-(ipeds$SAT.Critical.Reading.75th.percentile.score+ipeds$SAT.Math.75th.percentile.score+ipeds$SAT.Writing.75th.percentile.score)
+
+
+p1<-ggplot()+geom_boxplot(data=ipeds,aes(x="American Indian or Alaska Native",y=ipeds$Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),notch=TRUE,fill="olivedrab3")+ geom_boxplot(data=ipeds,aes(x="Asian",y=ipeds$Percent.of.total.enrollment.that.are.Asian),notch=TRUE,fill="hotpink")+geom_boxplot(data=ipeds,aes(x="Black or African American",y=ipeds$Percent.of.total.enrollment.that.are.Black.or.African.American),notch=TRUE,fill="skyblue")+geom_boxplot(data=ipeds,aes(x="Hispanic Latino",y=ipeds$Percent.of.total.enrollment.that.are.Hispanic.Latino),notch=TRUE,fill="seagreen3")+geom_boxplot(data=ipeds,aes(x="Native Hawaiian or Other Pacific Islander",y=ipeds$Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),notch=TRUE,fill="plum")+geom_boxplot(data=ipeds,aes(x="White",y=ipeds$Percent.of.total.enrollment.that.are.White),notch=TRUE,fill="blue3")+geom_boxplot(data=ipeds,aes(x="Two or more races",y=ipeds$Percent.of.total.enrollment.that.are.two.or.more.races),notch=TRUE,fill="red2")+geom_boxplot(data=ipeds,aes(x="Race ethnicity unknown",y=ipeds$Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),notch=TRUE,fill="slategrey")+geom_boxplot(data=ipeds,aes(x="Nonresident Alien",y=ipeds$Percent.of.total.enrollment.that.are.Nonresident.Alien),notch=TRUE,fill="turquoise3")+geom_boxplot(data=ipeds,aes(x="Women",y=ipeds$Percent.of.total.enrollment.that.are.women),notch=TRUE,fill="violetred")+ theme(legend.position = "none")+ggtitle(" All Universities")+theme(axis.text.x = element_text(angle=90))+ylab("% of Total Enrollments") +xlab("Diversity and Demography")
+
+data_pre<-subset(ipeds, sat_score >=2000)
+
+p2<-ggplot()+geom_boxplot(data=data_pre,aes(x="American Indian or Alaska Native",y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),notch=TRUE,fill="olivedrab3")+ geom_boxplot(data=data_pre,aes(x="Asian",y=Percent.of.total.enrollment.that.are.Asian),notch=TRUE,fill="hotpink")+geom_boxplot(data=data_pre,aes(x="Black or African American",y=Percent.of.total.enrollment.that.are.Black.or.African.American),notch=TRUE,fill="skyblue")+geom_boxplot(data=data_pre,aes(x="Hispanic Latino",y=Percent.of.total.enrollment.that.are.Hispanic.Latino),notch=TRUE,fill="seagreen3")+geom_boxplot(data=data_pre,aes(x="Native Hawaiian or Other Pacific Islander",y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),notch=TRUE,fill="plum")+geom_boxplot(data=data_pre,aes(x="White",y=Percent.of.total.enrollment.that.are.White),notch=TRUE,fill="blue3")+geom_boxplot(data=data_pre,aes(x="Two or more races",y=Percent.of.total.enrollment.that.are.two.or.more.races),notch=TRUE,fill="red2")+geom_boxplot(data=data_pre,aes(x="Race ethnicity unknown",y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),notch=TRUE,fill="slategrey")+geom_boxplot(data=data_pre,aes(x="Nonresident Alien",y=Percent.of.total.enrollment.that.are.Nonresident.Alien),notch=TRUE,fill="turquoise3")+geom_boxplot(data=data_pre,aes(x="Women",y=Percent.of.total.enrollment.that.are.women),notch=TRUE,fill="violetred")+ theme(legend.position = "none")+ggtitle("Prestigious University ")+theme(axis.text.x = element_text(angle=90))+ylab("% of Total Enrollments") +xlab("Diversity and Demography")
+
+
+data_nodiv<-subset(ipeds, ipeds$Historically.Black.College.or.University=="No"&ipeds$Religious.affiliation=="Not applicable"&sat_score <2000)
+
+p3<-ggplot()+geom_boxplot(data=data_nodiv,aes(x="American Indian or Alaska Native",y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),notch=TRUE,fill="olivedrab3")+ geom_boxplot(data=data_nodiv,aes(x="Asian",y=Percent.of.total.enrollment.that.are.Asian),notch=TRUE,fill="hotpink")+geom_boxplot(data=data_nodiv,aes(x="Black or African American",y=Percent.of.total.enrollment.that.are.Black.or.African.American),notch=TRUE,fill="skyblue")+geom_boxplot(data=data_nodiv,aes(x="Hispanic Latino",y=Percent.of.total.enrollment.that.are.Hispanic.Latino),notch=TRUE,fill="seagreen3")+geom_boxplot(data=data_nodiv,aes(x="Native Hawaiian or Other Pacific Islander",y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),notch=TRUE,fill="plum")+geom_boxplot(data=data_nodiv,aes(x="White",y=Percent.of.total.enrollment.that.are.White),notch=TRUE,fill="blue3")+geom_boxplot(data=data_nodiv,aes(x="Two or more races",y=Percent.of.total.enrollment.that.are.two.or.more.races),notch=TRUE,fill="red2")+geom_boxplot(data=data_nodiv,aes(x="Race ethnicity unknown",y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),notch=TRUE,fill="slategrey")+geom_boxplot(data=data_nodiv,aes(x="Nonresident Alien",y=Percent.of.total.enrollment.that.are.Nonresident.Alien),notch=TRUE,fill="turquoise3")+geom_boxplot(data=data_nodiv,aes(x="Women",y=Percent.of.total.enrollment.that.are.women),notch=TRUE,fill="violetred")+ theme(legend.position = "none")+ggtitle("No Religious/Diversity/Prestigious University ")+theme(axis.text.x = element_text(angle=90))+ylab("% of Total Enrollments") +xlab("Diversity and Demography")
+
+combined1<-(p1|p2|p3) + plot_annotation("Diversity and Demography Summary",theme=theme(plot.title=element_text(hjust=0.5)))
+combined1 
+```
+
+Starting with the number of applications. Diversity can be determined by looking at the % of total enrollments that are white. The lower the rate the more diverse the student population as most other races have % of total enrollments well below 50% with exceptions in cases such as religious or diversity affiliation. What can be seen is that higher the diversity, higher is the number of applications - this is seen from  % of total enrollment of students of white race reducing with number of applications. The same trend is noticed in case of diverse demographic in terms of sexes. **Therefore when it comes to application, students typically apply to universities with a diverse environment**. It is important to highlight that diversity data is present only for enrollment trend and not application. Therefore how diverse the application process is unknown.
+
+
+
+```{r Demographics and Diversity Applicants }
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+
+p1<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)))+geom_point(color="olivedrab3",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("American Indian or Alaska Native")+
+  ggplot(data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Asian)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Asian))+geom_point(color='hotpink',size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ ggtitle("Asian")+ggplot(data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)), aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Black.or.African.American))+geom_point(color='skyblue',size=3,alpha=1/2)+ylim(0,100)+ggtitle("Black or African American")+ylab("% Total Enrollment")+xlab("Total Applicants")
+  
+
+p2<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)))+geom_point(color="seagreen3",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Hispanic Latino")+ggplot(data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander))+geom_point(color='plum',size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Native Hawaiian or Other Pacific Islander")+ggplot(data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.White)), aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.White))+geom_point(color='blue3',size=3,alpha=1/2)+ylim(0,100)+ggtitle("White")+ylab("% Total Enrollment")+xlab("Total Applicants")
+
+
+
+p3<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)))+geom_point(color="red2",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Two or more races")+ggplot(data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown))+geom_point(color='slategrey',size=3,alpha=1/2)+ylim(0,100)+ggtitle("Race ethnicity unknown")+ylab("% Total Enrollment")+xlab("Total Applicants")+ggplot(data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)), aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Nonresident.Alien))+geom_point(color='turquoise3',size=3,alpha=1/2)+ylim(0,100)+ggtitle("Nonresident Alien") +ylab("% Total Enrollment")+xlab("Total Applicants")
+
+p4<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.women),data=subset(ipeds,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.women)))+geom_point(color="violetred",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Women")
+
+combined1<-((p1/p2)/p3)/p4
+combined1+plot_annotation(title = "Demography and Diversity vs Total Applicants")& 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+As seen from previous analysis prestigious universities receive high number of applications. Therefore a reason for the trend above could be attributed to the popularity of prestigious universities and the affirmative action policy in the United States. To verify this prestigious universities are filtered out and analysed below. The plot below confirms the popularity of prestigious universities as the number of applications goes up with diversity. For universities that have no religious or diversity affiliation or prestigious status, higher number of applications are still for more diverse universities. **Therefore while applying to university diversity and demography influence a students decision to apply.**
+
+
+```{r Demographics and Diversity Applicants prestigious and  no diversity or religious affiliation}
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+
+sat_score<-(ipeds$SAT.Critical.Reading.75th.percentile.score+ipeds$SAT.Math.75th.percentile.score+ipeds$SAT.Writing.75th.percentile.score)
+
+data_pre<-subset(ipeds, sat_score >=2000)
+
+data_nodiv<-subset(ipeds, ipeds$Historically.Black.College.or.University=="No"&ipeds$Religious.affiliation=="Not applicable"&sat_score <2000)
+
+p1<-ggplot()+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)),color="olivedrab3",size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Asian)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Asian),color='hotpink',size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Black.or.African.American),color='skyblue',size=2,alpha=1/2)+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)),color="seagreen3",size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='plum',size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.White)), aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.White),color='blue3',size=2,alpha=1/2)+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)),color="red2",size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='slategrey',size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Nonresident.Alien),color='turquoise3',size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Diversity - Prestigious university ")
+
+p2<-ggplot()+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.women),data=subset(data_pre,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.women)),color="violetred",size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Demography -Prestigious university ")
+combined1<-p1/p2
+
+data_nodiv<-subset(ipeds, ipeds$Historically.Black.College.or.University=="No"&ipeds$Religious.affiliation=="Not applicable"&sat_score <2000)
+
+p1<-ggplot()+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)),color="olivedrab3",size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Asian)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Asian),color='hotpink',size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Black.or.African.American),color='skyblue',size=2,alpha=1/2)+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)),color="seagreen3",size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='plum',size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.White)), aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.White),color='blue3',size=2,alpha=1/2)+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)),color="red2",size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='slategrey',size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)),aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Nonresident.Alien),color='turquoise3',size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Diversity - No religious/diversity affiliation/prestigious university")+xlim(0,70000)
+
+
+
+p2<-ggplot()+geom_point(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.women),data=subset(data_nodiv,!is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.women)),color="violetred",size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Demography - No religious/diversity affiliation/prestigious university ")
+
+combined2<-p1/p2
+
+(combined1|combined2)+plot_annotation(title = "Combined plot for Demography and Diversity vs Total Applicants ")&theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+Next is the enrollment rate. As before, it is important to realize diversity trends of application is unknown, furthermore as described previously enrollment rates are a better indication of student preference. As seen from below enrollment rates are fairly spread out, indicating that diversity is not a factor when it comes to enrolling in university. Even in universities that see only 50% white demographic, enrollment rates are fairly spread out. 
+
+```{r Demographics and Diversity enrolrate }
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+
+p1<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)))+geom_point(color="olivedrab3",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("American Indian or Alaska Native")+
+  ggplot(data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Asian)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Asian))+geom_point(color='hotpink',size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ ggtitle("Asian")+ggplot(data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)), aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Black.or.African.American))+geom_point(color='skyblue',size=3,alpha=1/2)+ylim(0,100)+ggtitle("Black or African American")+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")
+  
+
+p2<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)))+geom_point(color="seagreen3",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Hispanic Latino")+ggplot(data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander))+geom_point(color='plum',size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Native Hawaiian or Other Pacific Islander")+ggplot(data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.White)), aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.White))+geom_point(color='blue3',size=3,alpha=1/2)+ylim(0,100)+ggtitle("White")+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")
+
+
+
+p3<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)))+geom_point(color="red2",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Two or more races")+ggplot(data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown))+geom_point(color='slategrey',size=3,alpha=1/2)+ylim(0,100)+ggtitle("Race ethnicity unknown")+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggplot(data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)), aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Nonresident.Alien))+geom_point(color='turquoise3',size=3,alpha=1/2)+ylim(0,100)+ggtitle("Nonresident Alien") +ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")
+
+p4<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.women),data=subset(ipeds,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.women)))+geom_point(color="violetred",size=3,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Women")
+
+combined1<-((p1/p2)/p3)/p4
+combined1+plot_annotation(title = "Demography and Diversity vs Enrollment Rate")& 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+Performing a similar comparison between prestigious and no religious/diversity/prestigious universities based on enrollment rate. The enrollment rates are fairly spread out in both the case the university is prestigious or when no religious/diversity/prestigious status. **Therefore when it comes to enrollment, diversity and demography does not influence a students choice.**
+
+```{r Demographics and Diversity enrolrate prestigious and  no diversity or religious affiliation}
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+sat_score<-(ipeds$SAT.Critical.Reading.75th.percentile.score+ipeds$SAT.Math.75th.percentile.score+ipeds$SAT.Writing.75th.percentile.score)
+
+data_pre<-subset(ipeds, sat_score >=2000)
+
+p1<-ggplot()+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)),color="olivedrab3",size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Asian)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Asian),color='hotpink',size=2,alpha=1/2)+ggtitle("Asian")+geom_point(data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Black.or.African.American),color='skyblue',size=2,alpha=1/2)+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)),color="seagreen3",size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='plum',size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.White)), aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.White),color='blue3',size=2,alpha=1/2)+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)),color="red2",size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='slategrey',size=2,alpha=1/2)+geom_point(data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Nonresident.Alien),color='turquoise3',size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Diversity - Prestigious university ")
+
+
+p2<-ggplot()+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.women),data=subset(data_pre,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.women)),color="violetred",size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Demography - Prestigious university")
+
+combined1<-p1/p2
+
+
+data_nodiv<-subset(ipeds, ipeds$Historically.Black.College.or.University=="No"&ipeds$Religious.affiliation=="Not applicable"&sat_score <2000)
+
+p1<-ggplot()+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)),color="olivedrab3",size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Asian)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Asian),color='hotpink',size=2,alpha=1/2)+ggtitle("Asian")+geom_point(data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Black.or.African.American),color='skyblue',size=2,alpha=1/2)+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)),color="seagreen3",size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='plum',size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.White)), aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.White),color='blue3',size=2,alpha=1/2)+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)),color="red2",size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='slategrey',size=2,alpha=1/2)+geom_point(data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)),aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Nonresident.Alien),color='turquoise3',size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Diversity - No religious/diversity affiliation/prestigious university")
+
+
+
+p2<-ggplot()+geom_point(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.women),data=subset(data_nodiv,!is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.women)),color="violetred",size=2,alpha=1/2)+ylim(0,100)+ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Demography - No religious/diversity affiliation/prestigious university ")
+
+combined2<-p1/p2
+
+(combined1|combined2)+plot_annotation(title = "Combined plot for Demography and Diversity vs Enrollment Rate ")&theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+## Verification and Validation
+
+From the analysis above it can be concluded that the main factor that influences a students decision to apply to a particular university is more to do with the university status itself rather than factors such as location, highest degree offered or tuition fees. While enrolling however, students typically enroll in universities that have lower tuition and on campus living costs. Factors such as highest degree offered or location have little or no influence on decisions. It is important to keep in mind that the above analysis was pertained more to identify general trends, which is why certain variations from these trends are attributed to outlier cases. To verify and validate the above analysis to 50 universities in terms of number of applications, number of enrollments and enrollment rates are plotted.
+
+To do this certain outlier cases such as any religious or diversity affiliations, low number of applications and prestigious universities are filtered out.
+
+The orange/salmon color in the plots below are universities in the top 50 and the purple color represents universities within the top 50 that are prestigious. 
+
+```{r top fifty apps}
+
+top_fifty_apps <- ipeds %>%
+          filter((is.na(ipeds$Religious.affiliation)|ipeds$Religious.affiliation=="Not applicable"|ipeds$Historically.Black.College.or.University=="No")&ipeds$Applicants.total>=10000) %>% 
+         filter(rank(desc(Applicants.total))<=50)
+
+prestigious_apps<-top_fifty_apps %>% 
+  filter((top_fifty_apps$SAT.Critical.Reading.75th.percentile.score+top_fifty_apps$SAT.Math.75th.percentile.score+top_fifty_apps$SAT.Writing.75th.percentile.score)>=2000)
+
+
+
+```
+```{r top fifty enrollment}
+top_fifty_enrol <- ipeds %>%
+          filter((is.na(ipeds$Religious.affiliation)|ipeds$Religious.affiliation=="Not applicable"|ipeds$Historically.Black.College.or.University=="No")&ipeds$Applicants.total>=10000) %>% 
+         filter(rank(desc(Enrolled.total))<=50)
+
+prestigious_enrol<-top_fifty_enrol %>% 
+  filter((top_fifty_enrol$SAT.Critical.Reading.75th.percentile.score+top_fifty_enrol$SAT.Math.75th.percentile.score+top_fifty_enrol$SAT.Writing.75th.percentile.score)>=2000)
+
+```
+```{r top fifty enrolrate}
+top_fifty_enrolrate <- ipeds %>%
+          filter((is.na(ipeds$Religious.affiliation)|ipeds$Religious.affiliation=="Not applicable"|ipeds$Historically.Black.College.or.University=="No")&ipeds$Applicants.total>=10000) %>% 
+         filter(rank(desc(enrollment_rate*100))<=50)
+
+prestigious_enrolrate<-top_fifty_enrolrate %>% 
+  filter((top_fifty_enrolrate$SAT.Critical.Reading.75th.percentile.score+top_fifty_enrolrate$SAT.Math.75th.percentile.score+top_fifty_enrolrate$SAT.Writing.75th.percentile.score)>=2000)
+
+```
+
+### Acceptance rate vs enrollment rate
+A comparison of acceptance rate and enrollment rate trends for top 50 universities by number of applications, enrollments and enrollment rates. 
+
+The plot below confirms that acceptance rate doesn't influence a students decision to apply to a certain universities. In particular prestigious universities, which despite the low acceptance rate receive high number of applications. Similarly for enrollment rates, high number of applications does not imply higher enrollment rate, unless the university is prestigious. **Therefore confirming acceptance rate and enrollment rate trends have no particular influence on student decision to apply to a university.**
+```{r Acceptance rate vs enrollment rate conclusion}
+theme_set(theme_ben())
+p1<-ggplot(aes(x=Applicants.total,y=acceptance_rate*100),data=subset(ipeds, !is.na(acceptance_rate),!is.na(Applicants.total)))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$acceptance_rate*100),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$acceptance_rate*100),color='purple',size=3,alpha=1/2)+ ylab("Acceptance Rate (%)")+xlab("Total Applicants")+ggtitle("Acceptance Rate vs Total Applicants comparison of top 50 application universities and others")
+
+p2<-ggplot(aes(x=Applicants.total,y=enrollment_rate*100),data=subset(ipeds, !is.na(Applicants.total),!is.na(enrollment_rate)))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$enrollment_rate*100),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$enrollment_rate*100),color='purple',size=3,alpha=1/2)+ ylab("Enrollment Rate(%)")+xlab("Total Applicants")+ggtitle("Enrollment Rate vs Total Applicants comparison of top 50 application universities and others")
+combined1<-p1/p2
+combined1
+```
+
+Confirming the same for top 50 universities by total enrolled. As in the case of applications, the acceptance and enrollment trends determine that these factors don't influence a students decision to enroll in the university. The preference has more to do with the university status itself. As the number of students enrolled in prestigious universities, which have lower acceptance rate and relatively higher enrollment rate, is high. 
+```{r Acceptance rate vs enrollment rate enrollment}
+theme_set(theme_ben())
+p1<-ggplot(aes(x=Enrolled.total,y=acceptance_rate*100),data=subset(ipeds, !is.na(acceptance_rate),!is.na(Enrolled.total)))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_enrol,aes(x=top_fifty_enrol$Enrolled.total,y=top_fifty_enrol$acceptance_rate*100),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_enrol, aes(x=prestigious_enrol$Enrolled.total,y=prestigious_enrol$acceptance_rate*100),color='purple',size=3,alpha=1/2)+ ylab("Acceptance Rate(%)")+xlab("Total Enrolled")+ggtitle("Acceptance Rate vs Total Enrolled comparison of top 50 total enrollment universities and others")
+
+p2<-ggplot(aes(x=Enrolled.total,y=enrollment_rate*100),data=subset(ipeds, !is.na(Enrolled.total),!is.na(enrollment_rate)))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_enrol,aes(x=top_fifty_enrol$Enrolled.total,y=top_fifty_enrol$enrollment_rate*100),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_enrol, aes(x=prestigious_enrol$Enrolled.total,y=prestigious_enrol$enrollment_rate*100),color='purple',size=3,alpha=1/2)+ ylab("Enrollment Rate(%)")+xlab("Total Enrolled")+ggtitle("Enrollment Rate vs Total Enrolled comparison of top 50 total enrollment universities and others")
+
+combined1<-p1/p2
+combined1
+
+```
+
+**This plot confirms that the university status is more importance than acceptance rates. The enrollment rate is higher for prestigious universities despite low acceptance rates. However, for other universities there is no particular trend.**
+```{r Acceptance rate vs enrollment rate enrollment rate}
+theme_set(theme_ben())
+ggplot(aes(y=acceptance_rate*100,x=enrollment_rate*100),data=subset(ipeds, !is.na(acceptance_rate),!is.na(enrollment_rate)))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_enrolrate,aes(y=top_fifty_enrolrate$acceptance_rate*100,x=top_fifty_enrolrate$enrollment_rate*100),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(y=prestigious_enrolrate$acceptance_rate*100,x=prestigious_enrolrate$enrollment_rate*100),color='purple',size=3,alpha=1/2)+ xlab("Enrollment Rate(%)")+ylab("Acceptance Rate (%)")+ggtitle("Enrollment Rate vs Acceptance Rate comparison of top 50 enrollment rate universities and others")
+
+
+```
+
+### Highest degree offered
+Next the analysis on highest degree offered is confirmed. In all the three cases - highest applications, enrollments and enrollment rates the universities are those that offer Doctor's degree. However, comparing to the rest of the universities (marked in yellow) it confirms that type of degree offered has little influence on students choice as to which university to apply to or to enroll in. The university status has more to do with enrollment and application trends. And most prestigious universities happen to offer a Doctor's degree. 
+```{r conclusion highest degree apps}
+theme_set(theme_ben())
+par(mfrow = c(3,1))
+
+ggplot(ipeds, aes(Applicants.total,Highest.degree.offered))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Highest.degree.offered),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Highest.degree.offered),color='purple',size=3,alpha=1/2)+ ylab("Highest degree offered")+xlab("Total Applicants")+ggtitle("Highest degree offered vs Total Applicants comparison of top 50 application universities and others")
+```
+
+```{r conclusion highest degree enrollments}
+theme_set(theme_ben())
+ggplot(aes(x=Enrolled.total,y=Highest.degree.offered),data=subset(ipeds, !is.na(acceptance_rate),!is.na(Enrolled.total)))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_enrol,aes(x=top_fifty_enrol$Enrolled.total,y=top_fifty_enrol$Highest.degree.offered),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_enrol, aes(x=prestigious_enrol$Enrolled.total,y=prestigious_enrol$Highest.degree.offered),color='purple',size=3,alpha=1/2)+ ylab("Highest degree offered")+xlab("Total Enrolled")+ggtitle("Highest degree offered vs Total Enrolled comparison of top 50 total enrollment universities and others")
+```
+
+```{r conclusion highest degree enrolrate}
+theme_set(theme_ben())
+ggplot(aes(y=Highest.degree.offered,x=enrollment_rate*100),data=subset(ipeds,!is.na(enrollment_rate)))+geom_point(color="yellow3",alpha=1/8)+geom_point(data=top_fifty_enrolrate,aes(y=top_fifty_enrolrate$Highest.degree.offered,x=top_fifty_enrolrate$enrollment_rate*100),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(y=prestigious_enrolrate$Highest.degree.offered,x=prestigious_enrolrate$enrollment_rate*100),color='purple',size=3,alpha=1/2)+ xlab("Enrollment Rate(%)")+ylab("Highest degree offered")+ggtitle("Highest degree offered vs Enrollment Rate comparison of top 50 enrollment rate universities and others")
+
+```
+
+### Location 
+Next is the location analysis. From the analysis above it was identified that geographic location in particular has no influence on a student's decision. Level of urbanization has no influence on the student choice, however it has more influence than geographic location. This can be visualized in the plots below: 
+**When it comes to number of applications, geographic location isn't specific. These locations happen to be either city or in suburb. Again indicating that the university status is of more importance rather than the location or degree of urbanization. Similar is the case for total enrollments and enrollment rates. Therefore confirming that location has no direct influence. **
+```{r Map view conclusion Geographic apps}
+theme_set(theme_ben())
+library(tidyverse)
+library(sf)
+library(mapview)
+
+library(ggplot2)
+par(mfrow=c(2,1))
+map1<-mapview(top_fifty_apps,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Geographic",col.regions=c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#97DA3AFF","#FDE725FF"),popup=top_fifty_apps$Name)
+map1
+map2<-mapview( prestigious_apps,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol ="Geographic",col.regions=c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#97DA3AFF","#FDE725FF"),popup=prestigious_apps$Name)
+map2
+
+```
+```{r Map view conclusion urbanization apps}
+theme_set(theme_ben())
+library(tidyverse)
+library(sf)
+library(mapview)
+
+library(ggplot2)
+
+map1<-mapview(top_fifty_apps,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Degree.of.urbanization..Urban.centric.locale.",col.regions=c("darkorchid3","brown3"),popup=top_fifty_apps$Name)
+map1
+map2<-mapview( prestigious_apps,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol ="Degree.of.urbanization..Urban.centric.locale.",col.regions=c("darkorchid3","brown3"),popup=prestigious_apps$Name)
+map2
+```
+
+```{r Map view conclusion Geographic enrollment}
+theme_set(theme_ben())
+library(tidyverse)
+library(sf)
+library(mapview)
+
+library(ggplot2)
+
+map1<-mapview(top_fifty_enrol,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Geographic",col.regions=c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#4AC16DFF","#97DA3AFF","#FDE725FF"),popup=top_fifty_enrol$Name)
+map1
+map2<-mapview( prestigious_enrol,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol ="Geographic",col.regions=c("#440154FF","#46337EFF","#365C8DFF","#1FA187FF","#97DA3AFF","#FDE725FF"),popup=prestigious_enrol$Name)
+map2
+```
+```{r Map view conclusion urbanization enrollment}
+theme_set(theme_ben())
+library(tidyverse)
+library(sf)
+library(mapview)
+
+library(ggplot2)
+
+map1<-mapview(top_fifty_enrol,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Degree.of.urbanization..Urban.centric.locale.",col.regions=c("darkorchid3","cadetblue3","brown3"),popup=top_fifty_enrol$Name)
+map1
+map2<-mapview( prestigious_enrol,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol ="Degree.of.urbanization..Urban.centric.locale.",col.regions=c("darkorchid3","cadetblue3","brown3"),popup=prestigious_enrol$Name)
+
+```
+
+```{r Map view conclusion Geographic enrol rate}
+theme_set(theme_ben())
+library(tidyverse)
+library(sf)
+library(mapview)
+
+library(ggplot2)
+
+map1<-mapview(top_fifty_enrolrate,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Geographic",col.regions=c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#1FA187FF","#4AC16DFF","#97DA3AFF","#FDE725FF"),popup=top_fifty_enrolrate$Name)
+map1
+map2<-mapview( prestigious_enrolrate,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol ="Geographic",col.regions=c("#440154FF","#46337EFF","#365C8DFF","#277F8EFF","#97DA3AFF","#FDE725FF"),popup=prestigious_enrolrate$Name)
+map2
+
+```
+```{r Map view conclusion urbanization enrol rate}
+theme_set(theme_ben())
+library(tidyverse)
+library(sf)
+library(mapview)
+
+library(ggplot2)
+
+map1<-mapview(top_fifty_enrolrate,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol = "Degree.of.urbanization..Urban.centric.locale.",col.regions=c("darkorchid3","cadetblue3","brown3","goldenrod1"),popup=top_fifty_enrolrate$Name)
+map1
+map2<-mapview( prestigious_enrolrate,xcol = "Longitude.location.of.institution", ycol = "Latitude.location.of.institution" , crs = 4269, grid = FALSE, zcol ="Degree.of.urbanization..Urban.centric.locale.",col.regions=c("darkorchid3","cadetblue3","goldenrod1"),popup=prestigious_enrolrate$Name)
+map2
+
+```
+
+
+
+### Financial Factors
+Finally the financial factors are confirmed. The analysis above pointed as financial aspects being the most important factor for student choices. 
+**The plot below confirm that when it comes to number of applications, prestigious universities saw the highest number of applications despite the financial aspects. Other universities in the top 50 however confirm that costs are important when it comes to application as most of the universities have lower costs. Comparing to all other universities however, it can be quickly noticed that there are universities where the costs are low but receive lower applications - confirming university status as being of utmost importance. Similar trends are noticed when it comes to total enrollments and enrollment rates.**
+```{r Finance apps,warning = FALSE,, results = "hold"}
+theme_set(theme_ben())
+
+#Tuition 
+par(mfrow = c(2,2))
+p1<-ggplot(aes(x=Applicants.total,y=Tuition.and.fees..2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Tuition.and.fees..2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Tuition.and.fees..2013.14),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Tuition.and.fees..2013.14),color='purple',size=3,alpha=1/2)+ ylab("Tuition fees 2013-14")+xlab("Total Applications")
+
+#in state
+p2<- ggplot(aes(x=Applicants.total,y=Total.price.for.in.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Total.price.for.in.state.students.living.on.campus.2013.14), color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_apps,aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Total.price.for.in.state.students.living.on.campus.2013.14), color='purple',size=3,alpha=1/2)+ylab("On Campus Cost (In state)")+xlab("Total Applications")
+
+#Out of State
+p3<- ggplot(aes(x=Applicants.total,y=Total.price.for.out.of.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Applicants.total),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,     aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Total.price.for.out.of.state.students.living.on.campus.2013.14), color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_apps,aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Total.price.for.out.of.state.students.living.on.campus.2013.14), color='purple', size=3,alpha=1/2)+ ylab("On Campus Cost (Out state) ")+xlab("Total Applications")
+
+library("patchwork")
+ggp_all <- (p1) / (p2+p3 ) +    # Create grid of plots with title
+  plot_annotation(title = "Top 50 universities in terms of Number of Applications compared to other universities") & 
+  theme(plot.title = element_text(hjust = 0.5))
+ggp_all                     
+```
+
+```{r Finance enrol,warning = FALSE,, results = "hold"}
+theme_set(theme_ben())
+#Tuition 
+par(mfrow = c(2,2))
+p1<-ggplot(aes(x=Enrolled.total,y=Tuition.and.fees..2013.14),data=subset(ipeds, !is.na(Enrolled.total),!is.na(Tuition.and.fees..2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrol,aes(x=top_fifty_enrol$Enrolled.total,y=top_fifty_enrol$Tuition.and.fees..2013.14),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_enrol, aes(x=prestigious_enrol$Enrolled.total,y=prestigious_enrol$Tuition.and.fees..2013.14),color='purple',size=3,alpha=1/2)+ ylab("Tuition fees 2013-14")+xlab("Total Enrollments")
+
+#in state
+p2<- ggplot(aes(x=Enrolled.total,y=Total.price.for.in.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Enrolled.total),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)))+geom_point(data=top_fifty_enrol,aes(x=top_fifty_enrol$Enrolled.total,y=top_fifty_enrol$Total.price.for.in.state.students.living.on.campus.2013.14), color='salmon2',size=3,alpha=1/2)+geom_point(color="yellow3",alpha=1/10)+geom_point(data=prestigious_enrol,aes(x=prestigious_enrol$Enrolled.total,y=prestigious_enrol$Total.price.for.in.state.students.living.on.campus.2013.14), color='purple',size=3,alpha=1/2)+ ylab("On Campus Cost (In state)")+xlab("Total Enrollments")
+
+#Out of State
+p3<- ggplot(aes(x=Enrolled.total,y=Total.price.for.out.of.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Enrolled.total),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)))+geom_point(data=top_fifty_enrol, aes(x=top_fifty_enrol$Enrolled.total,y=top_fifty_enrol$Total.price.for.out.of.state.students.living.on.campus.2013.14), color='salmon2',size=3,alpha=1/2)+geom_point(color="yellow3",alpha=1/10)+geom_point(data=prestigious_enrol,aes(x=prestigious_enrol$Enrolled.total,y=prestigious_enrol$Total.price.for.out.of.state.students.living.on.campus.2013.14), color='purple', size=3,alpha=1/2)+ ylab("On Campus Cost (Out state) ")+xlab("Total Enrollments")
+
+library("patchwork")
+ggp_all <- (p1) / (p2+p3 ) +    # Create grid of plots with title
+  plot_annotation(title = "Top 50 universities in terms of Number of Enrollments compared to other universities") & 
+  theme(plot.title = element_text(hjust = 0.5))
+ggp_all                     
+```
+
+```{r Finance enrolrate,warning = FALSE,, results = "hold"}
+theme_set(theme_ben())
+
+#Tuition 
+par(mfrow = c(2,2))
+p1<-ggplot(aes(x=enrollment_rate*100,y=Tuition.and.fees..2013.14),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Tuition.and.fees..2013.14)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrol$Tuition.and.fees..2013.14),color='salmon2',size=3,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Tuition.and.fees..2013.14),color='purple',size=3,alpha=1/2)+ ylab("Tuition fees 2013-14")+xlab("Enrollment Rate (%)")
+
+#in state
+p2<- ggplot(aes(x=enrollment_rate*100,y=Total.price.for.in.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Enrolled.total),!is.na(Total.price.for.in.state.students.living.on.campus.2013.14)))+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Total.price.for.in.state.students.living.on.campus.2013.14), color='salmon2',size=3,alpha=1/2)+geom_point(color="yellow3",alpha=1/10)+geom_point(data=prestigious_enrolrate,aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Total.price.for.in.state.students.living.on.campus.2013.14), color='purple',size=3,alpha=1/2)+ ylab("On Campus Cost (In state)")+xlab("Enrollment Rate (%)")
+
+#Out of State
+p3<- ggplot(aes(x=enrollment_rate*100,y=Total.price.for.out.of.state.students.living.on.campus.2013.14),data=subset(ipeds, !is.na(Enrolled.total),!is.na(Total.price.for.out.of.state.students.living.on.campus.2013.14)))+geom_point(data=top_fifty_enrolrate, aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Total.price.for.out.of.state.students.living.on.campus.2013.14), color='salmon2',size=3,alpha=1/2)+geom_point(color="yellow3",alpha=1/10)+geom_point(data=prestigious_enrolrate,aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Total.price.for.out.of.state.students.living.on.campus.2013.14), color='purple', size=3,alpha=1/2)+ ylab("On Campus Cost (Out state) ")+xlab("Enrollment Rate (%)")
+
+library("patchwork")
+ggp_all <- (p1) / (p2+p3 ) +    # Create grid of plots with title
+  plot_annotation(title = "Top 50 universities in terms of Enrollment Rate (%) compared to other universities") & 
+  theme(plot.title = element_text(hjust = 0.5))
+ggp_all                     
+```
+
+## Demography and Diversity
+Verifying that diversity and demography have an influence when it comes to applications.** The below plot confirms that the number of applications are high in universities with high diversity. Important to note that the diversity of prestigious university is relatively high, in particular Hispanic/Latino and Asian diversity.**
+```{r Demographics and Diversity Applicants conclusion}
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+
+p1<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("American Indian or Alaska Native")+ylim(0,100)+ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Asian),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Asian)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.Asian),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.Asian),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants)")+ggtitle("Asian")+ylim(0,100)+ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Black.or.African.American),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.Black.or.African.American),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.Black.or.African.American),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Black or African American")+ylim(0,100)
+  
+  
+  
+p2<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.Hispanic.Latino),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.Hispanic.Latino),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Hispanic Latino")+ylim(0,100)+ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Native Hawaiian or Other Pacific Islander")+ylim(0,100)+ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.White),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.White)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.White),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.White),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("White")+ylim(0,100)
+
+
+
+
+p3<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.two.or.more.races),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.two.or.more.races),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Two or more races")+ylim(0,100)+ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Race/Ethnicity unknown")+ylim(0,100)+ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.Nonresident.Alien),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.Nonresident.Alien),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.Nonresident.Alien),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Nonresident Alien")+ylim(0,100)
+
+p4<-ggplot(aes(x=Applicants.total,y=Percent.of.total.enrollment.that.are.women),data=subset(ipeds, !is.na(Applicants.total),!is.na(Percent.of.total.enrollment.that.are.women)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_apps,aes(x=top_fifty_apps$Applicants.total,y=top_fifty_apps$Percent.of.total.enrollment.that.are.women),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_apps, aes(x=prestigious_apps$Applicants.total,y=prestigious_apps$Percent.of.total.enrollment.that.are.women),color='purple',size=3,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Total Applicants")+ggtitle("Women")+ylim(0,100)
+  
+combined1<-((p1/p2)/p3)/p4
+combined1+plot_annotation(title = "Top 50 universities by Total Applicants compared to other universities")& 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+**The plot below confirms that enrollment rates are not effected by diversity.** As established previously enrollment rates are high for prestigious universities and prestigious universities are more diverse than others. What can be seen from the plot for white race confirms that diversity does not play a factor when it comes to enrollment, but rather the university status itself is important.
+
+```{r Demographics and Diversity enrolrate conclusion}
+library(dplyr)
+library(tidyr)
+theme_set(theme_ben())
+
+p1<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native)))+geom_point(color="yellow3",alpha=1/10)+  geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.American.Indian.or.Alaska.Native),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("American Indian or Alaska Native")+ylim(0,100)+ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Asian),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Asian)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.Asian),color='salmon2',size=2,alpha=1/2)+ geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.Asian),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%))")+ggtitle("Asian")+ylim(0,100)+ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Black.or.African.American),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Black.or.African.American)))+geom_point(color="yellow3",alpha=1/10)+ geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.Black.or.African.American),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.Black.or.African.American),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment  Rate(%)")+ggtitle("Black or African American")+ylim(0,100)
+  
+  
+  
+p2<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Hispanic.Latino),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Hispanic.Latino)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.Hispanic.Latino),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.Hispanic.Latino),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Hispanic Latino")+ylim(0,100)+  ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.Native.Hawaiian.or.Other.Pacific.Islander),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Native Hawaiian or Other Pacific Islander")+ylim(0,100)+ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.White),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.White)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.White),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.White),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("White")+ylim(0,100)
+
+
+p3<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.two.or.more.races),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.two.or.more.races)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.two.or.more.races),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.two.or.more.races),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Two or more races")+ylim(0,100)+ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Race.ethnicity.unknown)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.Race.ethnicity.unknown),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Race/Ethnicity unknown")+ylim(0,100)+  ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.Nonresident.Alien),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.Nonresident.Alien)))+geom_point(color="yellow3",alpha=1/10)+ geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.Nonresident.Alien),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.Nonresident.Alien),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Nonresident Alien")+ylim(0,100)
+
+p4<-ggplot(aes(x=enrollment_rate*100,y=Percent.of.total.enrollment.that.are.women),data=subset(ipeds, !is.na(enrollment_rate),!is.na(Percent.of.total.enrollment.that.are.women)))+geom_point(color="yellow3",alpha=1/10)+geom_point(data=top_fifty_enrolrate,aes(x=top_fifty_enrolrate$enrollment_rate*100,y=top_fifty_enrolrate$Percent.of.total.enrollment.that.are.women),color='salmon2',size=2,alpha=1/2)+geom_point(data=prestigious_enrolrate, aes(x=prestigious_enrolrate$enrollment_rate*100,y=prestigious_enrolrate$Percent.of.total.enrollment.that.are.women),color='purple',size=2,alpha=1/2)+ ylab("% Total Enrollment")+xlab("Enrollment Rate(%)")+ggtitle("Women")+ylim(0,100)
+  
+combined1<-((p1/p2)/p3)/p4
+combined1+plot_annotation(title = "Top 50 universities by Enrollment Rate compared to other universities")& 
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+## Summary
+
+**From the analysis above it can be confirmed that students choice depends on the university status, followed by the financial aspects such as Tuition fees and Campus costs. Students apply to multiple universities, however enroll in only one. The enrollment rates for prestigious universities are high despite high finances, confirming the university itself matters. This is also the reason why most students enroll in universities that offer a Doctor's degree - again not because of the Degree itself but because of the university. Furthermore, location plays no role in a students decision and degree of urbanization of prestigious universities is typically City, which is why most students enroll in Cities. Finally, diversity only affects where the students apply, but shows no influence on enrollment trends.** Therefore summarizing the guiding questions: 
+
+**1. Application, Admission and Enrollment Trends**
+
+1.1 What is the relationship between admission rates and the number of enrolled students? - Higher acceptance rate does not reflect in enrollment rates. Implying students are more likely to enroll in universities that have a lower acceptance rate when accepted. 
+
+1.2 Do universities with higher enrollment rates have specific admission criteria? - Students that see higher enrollment rates are mostly prestigious universities that have a high SAT score requirements.
+
+**2.Academic Offerings**
+
+2.1 Are there specific degrees (e.g., bachelor’s, master’s, or doctoral) that attract more 	     students? - Students typically apply to universities that offer a doctoral. But a reason for this is that students prefer prestigious universities, most of which offer doctor's degree. However when it comes to enrollment, there is no particular preference. 
+
+**3.Financial Factors**
+
+3.1 How do tuition and fees vary across different universities and how does this impact 	     enrollment? - Tuition fees ranges from anywhere between 10K to 50K. Tuition fees is the most important factor when it comes to enrollment, however tuition fees shows no influence on where students apply.
+
+3.2 Are there correlations between total costs (in-state or out-of-state) and enrollment patterns? - On campus costs and tuition fees depend on the control of institution - Public or Private. Campus costs for public universities are typically lower and enrollment patterns decrease as the cost (both campus and tuition) increases. 
+
+**4.Location and Urbanization**
+
+4.1 Does the geographic location or urbanization level of the institution influence 		     student choices? - Both geography and degree of urbanization show no influence on enrollment rates. 
+
+**5.Demographics and Diversity**
+
+5.1 Does the diversity of student populations impact enrollment decisions? - Diversity only play a role when it comes to application however, has little influence during enrollment.
+
+
+
+
+  
