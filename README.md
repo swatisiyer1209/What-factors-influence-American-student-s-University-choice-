@@ -1,6 +1,6 @@
 ## Overview
 
-Welcome to the Exploratory Data Analysis (EDA) repository for the Integrated Postsecondary Education Data System (IPEDS) dataset. This project aims to uncover the factors that significantly influence American students' decisions when applying and enrolling in particular universities. The analysis is conducted using RStudio, and this README provides information about the project.
+Welcome to the Exploratory Data Analysis (EDA) repository for the Integrated Postsecondary Education Data System (IPEDS) dataset. This project aims to uncover the factors that significantly influence American students' decisions when applying and enrolling in particular universities. The analysis is conducted using RStudio, and this README provides information about the project. Click on the link to view the full report: https://swatisiyer1209.github.io/What-factors-influence-American-student-s-University-choice-/
 
 ## Dataset
 
